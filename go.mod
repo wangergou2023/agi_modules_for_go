@@ -1,4 +1,4 @@
-module agi_modules_for_go
+module github.com/wangergou2023/agi_modules_for_go
 
 go 1.22.0
 
