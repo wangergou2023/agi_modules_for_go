@@ -14,10 +14,10 @@ type MalvusCfg struct {
 
 // 定义主配置结构体
 type Cfg struct {
-	openAiAPIKey         string // OpenAI API的密钥
-	openAibaseURL        string // OpenAI 中转地址
-	openWeatherMapAPIKey string // OpenWeatherMap API的密钥
-	malvusCfg MalvusCfg // Milvus数据库的配置
+	openAiAPIKey         string    // OpenAI API的密钥
+	openAibaseURL        string    // OpenAI 中转地址
+	openWeatherMapAPIKey string    // OpenWeatherMap API的密钥
+	malvusCfg            MalvusCfg // Milvus数据库的配置
 }
 
 // New函数用于创建并初始化Cfg配置实例
@@ -30,10 +30,10 @@ func New() Cfg {
 
 	// 初始化主配置
 	cfg := Cfg{
-		openAiAPIKey:         "your",      // OpenAI API的密钥
-		openAibaseURL:        "your/v1",   //中转地址
-		openWeatherMapAPIKey: "your",      // OpenWeatherMap API的密钥
-		malvusCfg:            malvusCfg,   // 设置Milvus配置
+		openAiAPIKey:         "your",    // OpenAI API的密钥
+		openAibaseURL:        "your/v1", //中转地址
+		openWeatherMapAPIKey: "your",    // OpenWeatherMap API的密钥
+		malvusCfg:            malvusCfg, // 设置Milvus配置
 	}
 
 	return cfg // 返回配置实例
@@ -44,8 +44,18 @@ func (c Cfg) OpenAiAPIKey() string {
 	return c.openAiAPIKey
 }
 
+func (c Cfg) SetOpenAiAPIKey(openAiAPIKey string) Cfg {
+	c.openAiAPIKey = openAiAPIKey
+	return c
+}
+
 func (c Cfg) OpenAibaseURL() string {
 	return c.openAibaseURL
+}
+
+func (c Cfg) SetOpenAibaseURL(openAibaseURL string) Cfg {
+	c.openAibaseURL = openAibaseURL
+	return c
 }
 
 func (c Cfg) OpenWeatherMapAPIKey() string {
