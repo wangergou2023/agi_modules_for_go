@@ -12,3 +12,4 @@ plugin: clean
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/weather.so $(PLUGIN_SRC_DIR)/weather/plugin.go
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/role_player.so $(PLUGIN_SRC_DIR)/role_player/plugin.go
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/vision.so $(PLUGIN_SRC_DIR)/vision/plugin.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/alarm.so $(PLUGIN_SRC_DIR)/alarm/plugin.go
