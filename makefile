@@ -1,4 +1,5 @@
 PLUGIN_SRC_DIR = ./plugins/source/builtin
+PLUGIN_BRAIN_SRC_DIR = ./plugins/source/brain
 PLUGIN_COMPILED_DIR = ./plugins/compiled
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
@@ -13,4 +14,6 @@ plugin: clean
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/role_player.so $(PLUGIN_SRC_DIR)/role_player/plugin.go
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/vision.so $(PLUGIN_SRC_DIR)/vision/plugin.go
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/alarm.so $(PLUGIN_SRC_DIR)/alarm/plugin.go
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/creativity.so $(PLUGIN_SRC_DIR)/creativity/plugin.go
+	# GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/creativity.so $(PLUGIN_SRC_DIR)/creativity/plugin.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/left_frontal_lobe.so $(PLUGIN_BRAIN_SRC_DIR)/left_frontal_lobe/plugin.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/right_frontal_lobe.so $(PLUGIN_BRAIN_SRC_DIR)/right_frontal_lobe/plugin.go
