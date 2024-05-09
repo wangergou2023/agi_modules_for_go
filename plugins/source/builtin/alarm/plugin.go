@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -16,6 +17,7 @@ var Plugin plugins.Plugin = &Alarm{}
 type Alarm struct {
 	cfg          config.Cfg
 	openaiClient *openai.Client
+	serverAddr   string // TCP服务端地址
 }
 
 type AlarmInput struct {
@@ -27,6 +29,7 @@ type AlarmInput struct {
 func (a *Alarm) Init(cfg config.Cfg, openaiClient *openai.Client) error {
 	a.cfg = cfg
 	a.openaiClient = openaiClient
+	a.serverAddr = "localhost:8080" // 默认服务端地址
 	fmt.Println("Alarm plugin initialized successfully")
 	return nil
 }
@@ -85,8 +88,27 @@ func (a *Alarm) Execute(jsonInput string) (string, error) {
 	// 使用匿名函数触发闹钟消息
 	go func() {
 		<-timer.C
-		fmt.Printf("Alarm triggered! Event: %s, Message: %s\n", input.Event, input.Message)
+		alarmMsg := fmt.Sprintf("Alarm triggered! Event: %s, Message: %s", input.Event, input.Message)
+		fmt.Println(alarmMsg)
+
+		// 将消息发送到主程序的TCP服务端
+		sendMessageToServer(alarmMsg, a.serverAddr)
 	}()
 
 	return fmt.Sprintf("Alarm set for %v with event: %s, message: %s", duration, input.Event, input.Message), nil
+}
+
+// sendMessageToServer 通过TCP发送消息到主程序的服务端
+func sendMessageToServer(msg, serverAddr string) {
+	conn, err := net.Dial("tcp", serverAddr)
+	if err != nil {
+		fmt.Printf("无法连接到服务端：%v\n", err)
+		return
+	}
+	defer conn.Close()
+
+	_, err = fmt.Fprintln(conn, msg)
+	if err != nil {
+		fmt.Printf("发送消息到服务端失败：%v\n", err)
+	}
 }
