@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"time"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 	config "github.com/wangergou2023/agi_modules_for_go/config"
@@ -17,7 +17,7 @@ var Plugin plugins.Plugin = &Alarm{}
 type Alarm struct {
 	cfg          config.Cfg
 	openaiClient *openai.Client
-	serverAddr   string // TCP服务端地址
+	mqttClient   mqtt.Client // MQTT客户端
 }
 
 type AlarmInput struct {
@@ -29,7 +29,19 @@ type AlarmInput struct {
 func (a *Alarm) Init(cfg config.Cfg, openaiClient *openai.Client) error {
 	a.cfg = cfg
 	a.openaiClient = openaiClient
-	a.serverAddr = "localhost:8080" // 默认服务端地址
+
+	// 初始化MQTT客户端
+	opts := mqtt.NewClientOptions().
+		AddBroker(cfg.MQTTBrokerURL()).
+		SetClientID("alarm_client").
+		SetUsername(cfg.MQTTUsername()).
+		SetPassword(cfg.MQTTPassword())
+
+	a.mqttClient = mqtt.NewClient(opts)
+	if token := a.mqttClient.Connect(); token.Wait() && token.Error() != nil {
+		return fmt.Errorf("无法连接到MQTT代理：%v", token.Error())
+	}
+
 	fmt.Println("Alarm plugin initialized successfully")
 	return nil
 }
@@ -91,24 +103,19 @@ func (a *Alarm) Execute(jsonInput string) (string, error) {
 		alarmMsg := fmt.Sprintf("Alarm triggered! Event: %s, Message: %s", input.Event, input.Message)
 		fmt.Println(alarmMsg)
 
-		// 将消息发送到主程序的TCP服务端
-		sendMessageToServer(alarmMsg, a.serverAddr)
+		// 将消息发送到MQTT服务器
+		sendMessageToMQTT(alarmMsg, a.mqttClient)
 	}()
 
 	return fmt.Sprintf("Alarm set for %v with event: %s, message: %s", duration, input.Event, input.Message), nil
 }
 
-// sendMessageToServer 通过TCP发送消息到主程序的服务端
-func sendMessageToServer(msg, serverAddr string) {
-	conn, err := net.Dial("tcp", serverAddr)
-	if err != nil {
-		fmt.Printf("无法连接到服务端：%v\n", err)
-		return
-	}
-	defer conn.Close()
-
-	_, err = fmt.Fprintln(conn, msg)
-	if err != nil {
-		fmt.Printf("发送消息到服务端失败：%v\n", err)
+// sendMessageToMQTT 通过MQTT发送消息
+func sendMessageToMQTT(msg string, mqttClient mqtt.Client) {
+	topic := "plugin/messages"
+	token := mqttClient.Publish(topic, 0, false, msg)
+	token.Wait()
+	if token.Error() != nil {
+		fmt.Printf("发送消息到MQTT服务器失败：%v\n", token.Error())
 	}
 }
