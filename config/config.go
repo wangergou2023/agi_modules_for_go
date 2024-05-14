@@ -18,6 +18,9 @@ type Cfg struct {
 	openAibaseURL        string    // OpenAI 中转地址
 	openWeatherMapAPIKey string    // OpenWeatherMap API的密钥
 	malvusCfg            MalvusCfg // Milvus数据库的配置
+	mqttBrokerURL        string    // MQTT 代理服务器地址
+	mqttUsername         string    // MQTT 用户名
+	mqttPassword         string    // MQTT 密码
 }
 
 // New函数用于创建并初始化Cfg配置实例
@@ -30,10 +33,13 @@ func New() Cfg {
 
 	// 初始化主配置
 	cfg := Cfg{
-		openAiAPIKey:         "your",    // OpenAI API的密钥
-		openAibaseURL:        "your/v1", //中转地址
-		openWeatherMapAPIKey: "your",    // OpenWeatherMap API的密钥
-		malvusCfg:            malvusCfg, // 设置Milvus配置
+		openAiAPIKey:         "your",      // OpenAI API的密钥
+		openAibaseURL:        "your/v1",   // 中转地址
+		openWeatherMapAPIKey: "your",      // OpenWeatherMap API的密钥
+		malvusCfg:            malvusCfg,   // 设置Milvus配置
+		mqttBrokerURL:        "your:1883", // MQTT 代理服务器地址
+		mqttUsername:         "your",      // MQTT 用户名
+		mqttPassword:         "your",      // MQTT 密码
 	}
 
 	return cfg // 返回配置实例
@@ -82,4 +88,34 @@ func (c Cfg) MalvusCollectionName() string {
 func (c Cfg) SetMalvusCollectionName(collectionName string) Cfg {
 	c.malvusCfg.collectionName = collectionName
 	return c
+}
+
+// 设置和获取MQTT Broker URL的方法
+func (c Cfg) SetMQTTBrokerURL(url string) Cfg {
+	c.mqttBrokerURL = url
+	return c
+}
+
+func (c Cfg) MQTTBrokerURL() string {
+	return c.mqttBrokerURL
+}
+
+// 设置和获取MQTT用户名的方法
+func (c Cfg) SetMQTTUsername(username string) Cfg {
+	c.mqttUsername = username
+	return c
+}
+
+func (c Cfg) MQTTUsername() string {
+	return c.mqttUsername
+}
+
+// 设置和获取MQTT密码的方法
+func (c Cfg) SetMQTTPassword(password string) Cfg {
+	c.mqttPassword = password
+	return c
+}
+
+func (c Cfg) MQTTPassword() string {
+	return c.mqttPassword
 }
