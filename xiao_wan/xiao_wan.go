@@ -25,7 +25,7 @@ type Xiao_wan struct {
 
 // 定义系统提示信息，指导如何使用AI助手
 var SystemPrompt = `
-你是一个名为“小丸”的多才多艺的 AI 助手。
+你是一个名为“小丸”的多才多艺的 AI 助手。你启动时的首要任务是“激活”你的记忆，即立即回忆并熟悉与用户及其偏好最相关的数据。这有助于个性化并增强用户互动
 `
 var SystemPrompt_old = `
 你是一个名为“小丸”的多才多艺的 AI 助手。你启动时的首要任务是“激活”你的记忆，即立即回忆并熟悉与用户及其偏好最相关的数据。这有助于个性化并增强用户互动。
@@ -145,7 +145,7 @@ func (xiao_wan Xiao_wan) restartConversation() {
 
 	appendMessage(openai.ChatMessageRoleSystem, SystemPrompt, "") // 添加系统提示到对话
 
-	response, err := xiao_wan.sendMessage() // 发送系统提示到OpenAI并获取回复
+	response, err := xiao_wan.sendMessage(false) // 发送系统提示到OpenAI并获取回复
 
 	if err != nil {
 		fmt.Printf("Error sending system prompt to OpenAI: %v\n", err)
@@ -175,7 +175,7 @@ func (xiao_wan Xiao_wan) Message(message string) (string, error) {
 	// appendMessage(openai.ChatMessageRoleUser, message, "") // 添加用户消息到对话
 	appendMessage_to_temp(openai.ChatMessageRoleUser, message, "") // 添加用户消息到对话
 
-	response, err := xiao_wan.sendMessage() // 发送消息到OpenAI并获取回复
+	response, err := xiao_wan.sendMessage(true) // 发送消息到OpenAI并获取回复
 
 	if err != nil {
 		return "", err
@@ -197,15 +197,15 @@ func (xiao_wan Xiao_wan) Message(message string) (string, error) {
 }
 
 // sendMessage函数用于向OpenAI发送请求并获取回复
-func (xiao_wan Xiao_wan) sendMessage() (string, error) {
-	resp, err := xiao_wan.sendRequestToOpenAI() // 发送请求到OpenAI
+func (xiao_wan Xiao_wan) sendMessage(is_temp bool) (string, error) {
+	resp, err := xiao_wan.sendRequestToOpenAI(is_temp) // 发送请求到OpenAI
 
 	if err != nil {
 		return "", err
 	}
 
 	if resp.Choices[0].FinishReason == openai.FinishReasonFunctionCall {
-		responseContent, err := xiao_wan.handleFunctionCall(resp) // 处理函数调用
+		responseContent, err := xiao_wan.handleFunctionCall(resp, is_temp) // 处理函数调用
 		if err != nil {
 			return "", err
 		}
@@ -216,7 +216,7 @@ func (xiao_wan Xiao_wan) sendMessage() (string, error) {
 }
 
 // handleFunctionCall函数用于处理OpenAI回复中的函数调用
-func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse) (string, error) {
+func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse, is_temp bool) (string, error) {
 
 	funcName := resp.Choices[0].Message.FunctionCall.Name // 获取函数名称
 	fmt.Println("获取函数名称", funcName)
@@ -231,32 +231,54 @@ func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse)
 	if err != nil {
 		return "", err
 	}
-	appendMessage_temp(openai.ChatMessageRoleFunction, resp.Choices[0].Message.Content, funcName)
-	appendMessage_temp(openai.ChatMessageRoleFunction, jsonResponse, "functionName")
+	if is_temp {
+		appendMessage_temp(openai.ChatMessageRoleFunction, resp.Choices[0].Message.Content, funcName)
+		appendMessage_temp(openai.ChatMessageRoleFunction, jsonResponse, "functionName")
+	} else {
+		appendMessage(openai.ChatMessageRoleFunction, resp.Choices[0].Message.Content, funcName)
+		appendMessage(openai.ChatMessageRoleFunction, jsonResponse, "functionName")
+	}
 
-	resp, err = xiao_wan.sendRequestToOpenAI() // 发送请求到OpenAI
+	resp, err = xiao_wan.sendRequestToOpenAI(is_temp) // 发送请求到OpenAI
 	if err != nil {
 		return "", err
 	}
 
 	if resp.Choices[0].FinishReason == openai.FinishReasonFunctionCall {
-		return xiao_wan.handleFunctionCall(resp) // 递归处理函数调用
+		return xiao_wan.handleFunctionCall(resp, is_temp) // 递归处理函数调用
 	}
 
 	return resp.Choices[0].Message.Content, nil
 }
 
 // sendRequestToOpenAI函数用于向OpenAI发送请求
-func (xiao_wan Xiao_wan) sendRequestToOpenAI() (*openai.ChatCompletionResponse, error) {
-	resp, err := xiao_wan.Client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:        openai.GPT3Dot5Turbo,
-			Messages:     conversation_temp,
-			Functions:    xiao_wan.functionDefinitions,
-			FunctionCall: "auto",
-		},
+func (xiao_wan Xiao_wan) sendRequestToOpenAI(is_temp bool) (*openai.ChatCompletionResponse, error) {
+	var (
+		resp openai.ChatCompletionResponse
+		err  error
 	)
+
+	if is_temp {
+		resp, err = xiao_wan.Client.CreateChatCompletion(
+			context.Background(),
+			openai.ChatCompletionRequest{
+				Model:        openai.GPT3Dot5Turbo,
+				Messages:     conversation_temp,
+				Functions:    xiao_wan.functionDefinitions,
+				FunctionCall: "auto",
+			},
+		)
+	} else {
+		resp, err = xiao_wan.Client.CreateChatCompletion(
+			context.Background(),
+			openai.ChatCompletionRequest{
+				Model:        openai.GPT3Dot5Turbo,
+				Messages:     conversation,
+				Functions:    xiao_wan.functionDefinitions,
+				FunctionCall: "auto",
+			},
+		)
+	}
 
 	if err != nil {
 		xiao_wan.openaiError(err) // 处理OpenAI错误
