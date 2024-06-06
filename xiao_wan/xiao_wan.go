@@ -3,7 +3,8 @@ package xiao_wan
 // 导入所需的包
 import (
 	"context" // 用于控制请求、超时和取消
-	"fmt"     // 用于格式化输出
+	"encoding/json"
+	"fmt" // 用于格式化输出
 
 	"regexp"  // 用于正则表达式
 	"strconv" // 用于字符串和其他类型的转换
@@ -24,6 +25,9 @@ type Xiao_wan struct {
 
 // 定义系统提示信息，指导如何使用AI助手
 var SystemPrompt = `
+你是一个名为“小丸”的多才多艺的 AI 助手。
+`
+var SystemPrompt_old = `
 你是一个名为“小丸”的多才多艺的 AI 助手。你启动时的首要任务是“激活”你的记忆，即立即回忆并熟悉与用户及其偏好最相关的数据。这有助于个性化并增强用户互动。
 
 从现在开始，你所有的回答都必须遵循以下 JSON 格式：
@@ -99,6 +103,10 @@ var SystemPrompt = `
 
 // 定义全局变量conversation，用于存储对话历史
 var conversation []openai.ChatCompletionMessage
+var conversation_temp []openai.ChatCompletionMessage
+
+// 定义一个全局变量用于存储对话信息
+var conversationLog []map[string]string
 
 // appendMessage函数用于向对话中添加消息
 func appendMessage(role string, message string, name string) {
@@ -109,9 +117,26 @@ func appendMessage(role string, message string, name string) {
 	})
 }
 
+func appendMessage_to_temp(role string, message string, name string) {
+	conversation_temp = append(conversation, openai.ChatCompletionMessage{
+		Role:    role,
+		Content: message,
+		Name:    name,
+	})
+}
+
+func appendMessage_temp(role string, message string, name string) {
+	conversation_temp = append(conversation_temp, openai.ChatCompletionMessage{
+		Role:    role,
+		Content: message,
+		Name:    name,
+	})
+}
+
 // resetConversation函数用于清空对话历史
 func resetConversation() {
 	conversation = []openai.ChatCompletionMessage{}
+	conversation_temp = []openai.ChatCompletionMessage{}
 }
 
 // restartConversation函数用于重置并重新开始对话
@@ -129,10 +154,26 @@ func (xiao_wan Xiao_wan) restartConversation() {
 	appendMessage(openai.ChatMessageRoleAssistant, response, "") // 添加助手回复到对话
 }
 
+// saveConversationToJSON函数用于将对话信息保存到JSON中
+func saveConversationToJSON(role string, message string) {
+	conversationLog = append(conversationLog, map[string]string{
+		"role":    role,
+		"message": message,
+	})
+}
+
 // Message函数用于处理用户消息
 func (xiao_wan Xiao_wan) Message(message string) (string, error) {
+	saveConversationToJSON("user", message) // 将用户消息保存到JSON
+	// 导入短期记忆
+	logJSON, err := json.Marshal(conversationLog)
+	if err != nil {
+		return "", err
+	}
+	message = "短期记忆:" + string(logJSON) + message
 
-	appendMessage(openai.ChatMessageRoleUser, message, "") // 添加用户消息到对话
+	// appendMessage(openai.ChatMessageRoleUser, message, "") // 添加用户消息到对话
+	appendMessage_to_temp(openai.ChatMessageRoleUser, message, "") // 添加用户消息到对话
 
 	response, err := xiao_wan.sendMessage() // 发送消息到OpenAI并获取回复
 
@@ -140,8 +181,17 @@ func (xiao_wan Xiao_wan) Message(message string) (string, error) {
 		return "", err
 	}
 
-	appendMessage(openai.ChatMessageRoleAssistant, response, "") // 添加助手回复到对话
+	// appendMessage(openai.ChatMessageRoleAssistant, response, "") // 添加助手回复到对话
+	appendMessage_temp(openai.ChatMessageRoleAssistant, response, "") // 添加助手回复到对话
+	saveConversationToJSON("assistant", response)                     // 将助手回复保存到JSON
 	fmt.Printf("xiao wan:%s\r\n", response)
+
+	// 打印conversationLog的内容
+	logJSON, err = json.Marshal(conversationLog)
+	if err != nil {
+		return "", err
+	}
+	fmt.Printf("Conversation Log: %s\r\n", string(logJSON))
 
 	return response, nil
 }
@@ -181,8 +231,8 @@ func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse)
 	if err != nil {
 		return "", err
 	}
-	appendMessage(openai.ChatMessageRoleFunction, resp.Choices[0].Message.Content, funcName)
-	appendMessage(openai.ChatMessageRoleFunction, jsonResponse, "functionName")
+	appendMessage_temp(openai.ChatMessageRoleFunction, resp.Choices[0].Message.Content, funcName)
+	appendMessage_temp(openai.ChatMessageRoleFunction, jsonResponse, "functionName")
 
 	resp, err = xiao_wan.sendRequestToOpenAI() // 发送请求到OpenAI
 	if err != nil {
@@ -202,7 +252,7 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI() (*openai.ChatCompletionResponse, 
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:        openai.GPT3Dot5Turbo,
-			Messages:     conversation,
+			Messages:     conversation_temp,
 			Functions:    xiao_wan.functionDefinitions,
 			FunctionCall: "auto",
 		},
