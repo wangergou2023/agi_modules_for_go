@@ -17,6 +17,13 @@ var cfg = config.New()
 func main() {
 	fmt.Println("xiao wan is starting up... Please wait a moment.")
 
+	cfg = cfg.SetOpenAibaseURL("https://llxspace.website/v1")
+	cfg = cfg.SetOpenAiAPIKey("sk-ltSixDlOAzM7jrt1E6E2A2F82cF5436fA0367103Be6e09F3")
+	cfg = cfg.SetMalvusApiEndpoint("http://llxspace.store:19530")
+	cfg = cfg.SetMQTTBrokerURL("tcp://llxspace.store:1883")
+	cfg = cfg.SetMQTTUsername("xiao_wan")
+	cfg = cfg.SetMQTTPassword("xiao_wan")
+
 	config := openai.DefaultConfig(cfg.OpenAiAPIKey())
 	//need"/v1"
 	config.BaseURL = cfg.OpenAibaseURL()

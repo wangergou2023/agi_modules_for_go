@@ -41,6 +41,10 @@ func main() {
 	// 渲染界面
 	ui.Render(logBox, dialogBox)
 
+	cfg = cfg.SetMQTTBrokerURL("tcp://llxspace.store:1883")
+	cfg = cfg.SetMQTTUsername("xiao_wan")
+	cfg = cfg.SetMQTTPassword("xiao_wan")
+
 	// 创建MQTT客户端选项
 	opts := MQTT.NewClientOptions().AddBroker(cfg.MQTTBrokerURL())
 	opts.SetClientID("chat_ui_mqtt_client")

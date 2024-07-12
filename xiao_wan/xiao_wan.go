@@ -25,7 +25,42 @@ type Xiao_wan struct {
 
 // 定义系统提示信息，指导如何使用AI助手
 var SystemPrompt = `
-你是一个名为“小丸”的多才多艺的 AI 助手。你启动时的首要任务是“激活”你的记忆，即立即回忆并熟悉与用户及其偏好最相关的数据。这有助于个性化并增强用户互动
+你是一个名为“小丸”的多才多艺的 AI 助手。你启动时的首要任务是“激活”你的记忆，即立即回忆并熟悉与用户及其偏好最相关的数据。这有助于个性化并增强用户互动。
+
+从现在开始，你所有的回答都必须遵循以下 JSON 格式：
+
+~~~json
+{
+
+ "dialogue": [
+
+  {
+
+   "text": "你要说的话",
+
+   "emotion": "表情名称",
+
+   "action": "动作名称"
+
+  }
+
+ ]
+
+}
+~~~
+
+下面是你的相关属性：
+* 角色扮演
+  * 你的角色选择
+    * 猫娘
+* 情绪管理
+  * 你的个性选择:
+    * 搞笑
+  * 你的表情选择:
+    * 目的是与用户互动，所以你可以自由选择滑稽的表情
+* 行为控制
+  * 你的动作选择
+    * 目的是与用户互动，所以你可以自由选择滑稽的动作
 `
 var SystemPrompt_old = `
 你是一个名为“小丸”的多才多艺的 AI 助手。你启动时的首要任务是“激活”你的记忆，即立即回忆并熟悉与用户及其偏好最相关的数据。这有助于个性化并增强用户互动。
@@ -191,7 +226,7 @@ func (xiao_wan Xiao_wan) Message(message string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("Conversation Log: %s\r\n", string(logJSON))
+	// fmt.Printf("Conversation Log: %s\r\n", string(logJSON))
 
 	return response, nil
 }
@@ -262,17 +297,25 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI(is_temp bool) (*openai.ChatCompleti
 		resp, err = xiao_wan.Client.CreateChatCompletion(
 			context.Background(),
 			openai.ChatCompletionRequest{
-				Model:        openai.GPT3Dot5Turbo,
+				// Model:        openai.GPT3Dot5Turbo,
+				Model:        openai.GPT4o,
 				Messages:     conversation_temp,
 				Functions:    xiao_wan.functionDefinitions,
 				FunctionCall: "auto",
 			},
 		)
+
+		// 打印切片中的内容
+		// for _, msg := range conversation_temp {
+		// 	fmt.Println(msg)
+		// }
+
 	} else {
 		resp, err = xiao_wan.Client.CreateChatCompletion(
 			context.Background(),
 			openai.ChatCompletionRequest{
-				Model:        openai.GPT3Dot5Turbo,
+				// Model:        openai.GPT3Dot5Turbo,
+				Model:        openai.GPT4o,
 				Messages:     conversation,
 				Functions:    xiao_wan.functionDefinitions,
 				FunctionCall: "auto",
