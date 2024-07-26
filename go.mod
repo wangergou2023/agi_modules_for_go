@@ -18,7 +18,7 @@ require (
 	github.com/milvus-io/milvus-sdk-go/v2 v2.3.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
-	github.com/sashabaranov/go-openai v1.26.2 // indirect
+	github.com/sashabaranov/go-openai v1.27.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect

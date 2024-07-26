@@ -298,7 +298,7 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI(is_temp bool) (*openai.ChatCompleti
 			context.Background(),
 			openai.ChatCompletionRequest{
 				// Model:        openai.GPT3Dot5Turbo,
-				Model:        openai.GPT4o,
+				Model:        openai.GPT4oMini,
 				Messages:     conversation_temp,
 				Functions:    xiao_wan.functionDefinitions,
 				FunctionCall: "auto",
@@ -315,7 +315,7 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI(is_temp bool) (*openai.ChatCompleti
 			context.Background(),
 			openai.ChatCompletionRequest{
 				// Model:        openai.GPT3Dot5Turbo,
-				Model:        openai.GPT4o,
+				Model:        openai.GPT4oMini,
 				Messages:     conversation,
 				Functions:    xiao_wan.functionDefinitions,
 				FunctionCall: "auto",
