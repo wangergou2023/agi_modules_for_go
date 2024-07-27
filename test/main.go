@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	openai "github.com/sashabaranov/go-openai"
@@ -21,11 +22,15 @@ func main() {
 	//need"/v1"
 	config.BaseURL = cfg.OpenAibaseURL()
 	openaiClient := openai.NewClientWithConfig(config)
+	openaiClient_face := openai.NewClientWithConfig(config)
 
 	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient)
+	xiao_wan_chat_face := xiao_wan.StartOne(cfg, openaiClient_face)
 
 	// 启动MQTT订阅
 	go startMQTTClient(&xiao_wan_chat)
+	// 等3秒订阅成功
+	time.Sleep(3 * time.Second)
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Conversation")
@@ -36,15 +41,21 @@ func main() {
 		text, _ := reader.ReadString('\n')
 		// convert CRLF to LF
 		text = strings.Replace(text, "\n", "", -1)
-		xiao_wan_chat.Message(text)
+		response, _ := xiao_wan_chat.Message(text)
+		fmt.Printf("xiao wan:%s\r\n", response)
+		response2, _ := xiao_wan_chat_face.MessageOne(response)
+		fmt.Printf("xiao wan face:%s\r\n", response2)
+
 	}
 }
 
 // 启动MQTT客户端，订阅消息
 func startMQTTClient(xiao_wan_chat *xiao_wan.Xiao_wan) {
+	// 生成随机客户端ID
+	clientID := fmt.Sprintf("xiao_wan_client_%d", time.Now().UnixNano())
 	opts := mqtt.NewClientOptions().
 		AddBroker(cfg.MQTTBrokerURL()).
-		SetClientID("xiao_wan_client").
+		SetClientID(clientID).
 		SetUsername(cfg.MQTTUsername()).
 		SetPassword(cfg.MQTTPassword())
 	client := mqtt.NewClient(opts)

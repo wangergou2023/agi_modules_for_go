@@ -32,7 +32,7 @@ type PluginResponse struct {
 }
 
 // LoadPlugins函数加载指定目录下的所有插件
-func LoadPlugins(cfg config.Cfg, openaiClient *openai.Client) error {
+func LoadPlugins(cfg config.Cfg, openaiClient *openai.Client, compiledDir string) error {
 	loadedPlugins = make(map[string]Plugin) // 重新初始化插件映射
 
 	// 获取当前函数的执行文件路径
@@ -46,8 +46,8 @@ func LoadPlugins(cfg config.Cfg, openaiClient *openai.Client) error {
 	fmt.Println("Current file path:", filename)
 	fmt.Println("Current directory:", filepath.Dir(filename))
 
-	// 从"compiled"目录读取插件文件
-	files, err := os.ReadDir(filepath.Dir(filename) + "/compiled")
+	// 从传入的compiledDir读取插件文件
+	files, err := os.ReadDir(filepath.Dir(filename) + "/" + compiledDir)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func LoadPlugins(cfg config.Cfg, openaiClient *openai.Client) error {
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".so" {
 			fmt.Println("Loading plugin: ", file.Name())
-			err := loadSinglePlugin(filepath.Dir(filename)+"/compiled/"+file.Name(), cfg, openaiClient)
+			err := loadSinglePlugin(filepath.Dir(filename)+"/"+compiledDir+"/"+file.Name(), cfg, openaiClient)
 			if err != nil {
 				return err
 			}
