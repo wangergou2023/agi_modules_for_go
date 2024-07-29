@@ -23,6 +23,7 @@ type Xiao_wan struct {
 	functionDefinitions []openai.FunctionDefinition
 	conversation        []openai.ChatCompletionMessage
 	model               string
+	plugins             *plugins.PluginManager
 }
 
 // 定义系统提示信息，指导如何使用AI助手
@@ -64,7 +65,7 @@ var SystemPrompt = `
   * 你的动作选择
     * 目的是与用户互动，所以你可以自由选择滑稽的动作
 `
-var SystemPrompt2 = `
+var FacePrompt = `
 你是一个负责表情管理的助手，根据emotion的内容选择适合的表情，并执行对应插件即可，不需要说话
 `
 
@@ -165,13 +166,13 @@ func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse)
 
 	funcName := resp.Choices[0].Message.FunctionCall.Name // 获取函数名称
 	fmt.Println("获取函数名称", funcName)
-	ok := plugins.IsPluginLoaded(funcName) // 检查是否加载了相应插件
+	ok := xiao_wan.plugins.IsPluginLoaded(funcName) // 检查是否加载了相应插件
 	fmt.Println("检查是否加载了相应插件", ok)
 	if !ok {
 		return "", fmt.Errorf("no plugin loaded with name %v", funcName)
 	}
 
-	jsonResponse, err := plugins.CallPlugin(resp.Choices[0].Message.FunctionCall.Name, resp.Choices[0].Message.FunctionCall.Arguments) // 调用插件
+	jsonResponse, err := xiao_wan.plugins.CallPlugin(resp.Choices[0].Message.FunctionCall.Name, resp.Choices[0].Message.FunctionCall.Arguments) // 调用插件
 
 	if err != nil {
 		return "", err
@@ -217,16 +218,22 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI() (*openai.ChatCompletionResponse, 
 
 // Start函数用于启动助手
 func Start(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
-	if err := plugins.LoadPlugins(cfg, openaiClient, "compiled"); err != nil {
-		fmt.Printf("Error loading plugins: %v", err)
+	xiao_wan := Xiao_wan{
+		cfg:    cfg,
+		Client: openaiClient,
+		model:  openai.GPT4oMini,
+	}
+
+	// 创建一个新的 PluginManager 实例
+	xiao_wan.plugins = plugins.NewPluginManager(cfg, openaiClient)
+
+	// 加载插件目录中的所有插件
+	err := xiao_wan.plugins.LoadPlugins("compiled")
+	if err != nil {
+		fmt.Printf("Error loading plugins: %v\n", err)
 	}
 	fmt.Println("Plugins loaded successfully")
-	xiao_wan := Xiao_wan{
-		cfg:                 cfg,
-		Client:              openaiClient,
-		functionDefinitions: plugins.GenerateOpenAIFunctionsDefinition(),
-		model:               openai.GPT4oMini,
-	}
+	xiao_wan.functionDefinitions = xiao_wan.plugins.GenerateOpenAIFunctionsDefinition()
 
 	// 重置对话
 	xiao_wan.conversation = []openai.ChatCompletionMessage{}
@@ -253,24 +260,30 @@ func Start(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
 	return xiao_wan
 }
 
-func StartOne(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
-	if err := plugins.LoadPlugins(cfg, openaiClient, "compiled2"); err != nil {
-		fmt.Printf("Error loading plugins: %v", err)
+func StartOne(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string) Xiao_wan {
+	xiao_wan := Xiao_wan{
+		cfg:    cfg,
+		Client: openaiClient,
+		model:  openai.GPT4oMini,
+	}
+
+	// 创建一个新的 PluginManager 实例
+	xiao_wan.plugins = plugins.NewPluginManager(cfg, openaiClient)
+
+	// 加载插件目录中的所有插件
+	err := xiao_wan.plugins.LoadPlugins("compiled2")
+	if err != nil {
+		fmt.Printf("Error loading plugins: %v\n", err)
 	}
 	fmt.Println("Plugins loaded successfully")
-	xiao_wan := Xiao_wan{
-		cfg:                 cfg,
-		Client:              openaiClient,
-		functionDefinitions: plugins.GenerateOpenAIFunctionsDefinition(),
-		model:               openai.GPT4oMini,
-	}
+	xiao_wan.functionDefinitions = xiao_wan.plugins.GenerateOpenAIFunctionsDefinition()
 
 	// 重置对话
 	xiao_wan.conversation = []openai.ChatCompletionMessage{}
 	// 添加系统提示到对话
 	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
-		Content: SystemPrompt2,
+		Content: systemPrompt,
 		Name:    "",
 	})
 
