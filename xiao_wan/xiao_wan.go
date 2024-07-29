@@ -179,14 +179,8 @@ func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse)
 
 	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleFunction,
-		Content: resp.Choices[0].Message.Content,
-		Name:    funcName,
-	})
-
-	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleFunction,
 		Content: jsonResponse,
-		Name:    "functionName",
+		Name:    funcName,
 	})
 
 	resp, err = xiao_wan.sendRequestToOpenAI() // 发送请求到OpenAI
@@ -194,9 +188,10 @@ func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse)
 		return "", err
 	}
 
-	if resp.Choices[0].FinishReason == openai.FinishReasonFunctionCall {
-		return xiao_wan.handleFunctionCall(resp) // 递归处理函数调用
-	}
+	// 部分模型会循环重复，这里暂时先不支持了
+	// if resp.Choices[0].FinishReason == openai.FinishReasonFunctionCall {
+	// 	return xiao_wan.handleFunctionCall(resp) // 递归处理函数调用
+	// }
 
 	return resp.Choices[0].Message.Content, nil
 }
@@ -267,7 +262,7 @@ func StartOne(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
 		cfg:                 cfg,
 		Client:              openaiClient,
 		functionDefinitions: plugins.GenerateOpenAIFunctionsDefinition(),
-		model:               openai.GPT4o,
+		model:               openai.GPT4oMini,
 	}
 
 	// 重置对话
