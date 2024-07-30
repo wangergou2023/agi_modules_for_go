@@ -25,7 +25,7 @@ func main() {
 	openaiClient_face := openai.NewClientWithConfig(config)
 
 	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient)
-	xiao_wan_chat_face := xiao_wan.StartOne(cfg, openaiClient_face, xiao_wan.FacePrompt)
+	xiao_wan_chat_face := xiao_wan.StartOne(cfg, openaiClient_face, xiao_wan.FacePrompt, "compiled2")
 
 	// 启动MQTT订阅
 	go startMQTTClient(&xiao_wan_chat)

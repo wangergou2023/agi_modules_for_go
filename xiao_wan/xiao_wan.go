@@ -260,7 +260,7 @@ func Start(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
 	return xiao_wan
 }
 
-func StartOne(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string) Xiao_wan {
+func StartOne(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string, compiledDir string) Xiao_wan {
 	xiao_wan := Xiao_wan{
 		cfg:    cfg,
 		Client: openaiClient,
@@ -271,7 +271,7 @@ func StartOne(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string) 
 	xiao_wan.plugins = plugins.NewPluginManager(cfg, openaiClient)
 
 	// 加载插件目录中的所有插件
-	err := xiao_wan.plugins.LoadPlugins("compiled2")
+	err := xiao_wan.plugins.LoadPlugins(compiledDir)
 	if err != nil {
 		fmt.Printf("Error loading plugins: %v\n", err)
 	}
