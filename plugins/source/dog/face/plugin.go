@@ -106,5 +106,5 @@ func sendMessageToMQTT(msg string, mqttClient mqtt.Client) {
 
 // 测试参考数据
 // {
-// 	"current_emotion": "Happy"
+// 	"emotion/control": "Happy"
 // }
