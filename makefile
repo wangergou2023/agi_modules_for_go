@@ -5,19 +5,21 @@ PLUGIN_DOG_SRC_DIR = ./plugins/source/dog
 
 PLUGIN_COMPILED_DIR = ./plugins/compiled
 PLUGIN_COMPILED2_DIR = ./plugins/compiled2
+PLUGIN_COMPILED3_DIR = ./plugins/compiled3
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 
 clean:
 	rm -f $(PLUGIN_COMPILED_DIR)/*.so
 	rm -f $(PLUGIN_COMPILED2_DIR)/*.so
+	rm -f $(PLUGIN_COMPILED3_DIR)/*.so
 
 plugin: clean
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/alarm.so $(PLUGIN_SRC_DIR)/alarm/plugin.go
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/time.so $(PLUGIN_SRC_DIR)/time/plugin.go
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/legs.so $(PLUGIN_DOG_SRC_DIR)/legs/plugin.go
 
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED2_DIR)/face.so $(PLUGIN_DOG_SRC_DIR)/face/plugin.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED3_DIR)/legs.so $(PLUGIN_DOG_SRC_DIR)/legs/plugin.go
 
 	# GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/memory.so $(PLUGIN_SRC_DIR)/memory/plugin.go
 	# GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_COMPILED_DIR)/time.so $(PLUGIN_SRC_DIR)/time/plugin.go
