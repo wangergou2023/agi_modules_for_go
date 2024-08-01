@@ -24,10 +24,12 @@ func main() {
 	openaiClient := openai.NewClientWithConfig(config)
 	openaiClient_face := openai.NewClientWithConfig(config)
 	openaiClient_legs := openai.NewClientWithConfig(config)
+	openaiClient_tts := openai.NewClientWithConfig(config)
 
 	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient)
 	xiao_wan_chat_face := xiao_wan.StartOne(cfg, openaiClient_face, xiao_wan.FacePrompt, "compiled2")
 	xiao_wan_chat_legs := xiao_wan.StartOne(cfg, openaiClient_legs, xiao_wan.LegsPrompt, "compiled3")
+	xiao_wan_chat_tts := xiao_wan.StartOne(cfg, openaiClient_tts, xiao_wan.TtsPrompt, "compiled4")
 
 	// 启动MQTT订阅
 	go startMQTTClient(&xiao_wan_chat)
@@ -45,9 +47,10 @@ func main() {
 		text = strings.Replace(text, "\n", "", -1)
 		response, _ := xiao_wan_chat.Message(text)
 		fmt.Printf("xiao wan:%s\r\n", response)
-		response2, _ := xiao_wan_chat_legs.MessageOne(response)
-		fmt.Printf("xiao wan legs:%s\r\n", response2)
+		response2, _ := xiao_wan_chat_tts.MessageOne(response)
+		fmt.Printf("xiao wan tts:%s\r\n", response2)
 		go xiao_wan_chat_face.MessageOne(response)
+		go xiao_wan_chat_legs.MessageOne(response)
 	}
 }
 

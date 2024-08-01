@@ -79,6 +79,9 @@ moter0：前左腿,moter1：前右腿,moter2：后左腿,moter3：后右腿;
 90度：四肢站立
 180度：四肢向后抬起90度
 `
+var TtsPrompt = `
+你是一个负责语音的助手，根据text的内容转化成语音，并执行对应插件即可，不需要回答
+`
 
 // 定义一个全局变量用于存储对话信息
 var conversationLog []map[string]string
