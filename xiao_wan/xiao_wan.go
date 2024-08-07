@@ -242,7 +242,7 @@ func Start(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
 	xiao_wan.plugins = plugins.NewPluginManager(cfg, openaiClient)
 
 	// 加载插件目录中的所有插件
-	err := xiao_wan.plugins.LoadPlugins("compiled")
+	err := xiao_wan.plugins.LoadPlugins("for_chat")
 	if err != nil {
 		fmt.Printf("Error loading plugins: %v\n", err)
 	}
