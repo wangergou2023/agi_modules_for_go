@@ -35,7 +35,7 @@ func (c CommandPlugin) ID() string {
 
 // Description方法返回插件的描述
 func (c CommandPlugin) Description() string {
-	return "执行不需要交互的Linux命令。"
+	return "这个是一台Linux电脑的终端，可以通过它获取很多你想要的信息，但只能执行不需要交互的Linux命令。"
 }
 
 // FunctionDefinition方法返回OpenAI函数定义
