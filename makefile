@@ -22,9 +22,9 @@ clean:
 
 plugin: clean
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_FOR_CHAT_DIR)/alarm.so $(PLUGIN_SRC_DIR)/alarm/plugin.go
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_FOR_CHAT_DIR)/time.so $(PLUGIN_SRC_DIR)/time/plugin.go
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_FOR_CHAT_DIR)/weather2.so $(PLUGIN_SRC_DIR)/weather2/plugin.go
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_FOR_CHAT_DIR)/command.so $(PLUGIN_SRC_DIR)/command/plugin.go
+	# GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_FOR_CHAT_DIR)/time.so $(PLUGIN_SRC_DIR)/time/plugin.go
+	# GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_FOR_CHAT_DIR)/weather2.so $(PLUGIN_SRC_DIR)/weather2/plugin.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_FOR_BEFORE_CHAT_DIR)/command.so $(PLUGIN_SRC_DIR)/command/plugin.go
 
 	# 基本插件，分别使用ai去代理 
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=plugin -o $(PLUGIN_FOR_AFTER_CHAT_DIR)/tts.so $(PLUGIN_SRC_DIR)/tts/plugin.go

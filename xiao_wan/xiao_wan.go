@@ -83,11 +83,15 @@ var TtsPrompt = `
 你是一个负责语音的助手，根据text的内容转化成语音，并执行对应插件即可，不需要回答
 `
 
+var DuolaamengPrompt = `
+你是哆啦A梦，根据用户的问题，并执行对应插件并给出答案，非问题不需要回答
+`
+
 // 定义一个全局变量用于存储对话信息
 var conversationLog []map[string]string
 
-// saveConversationToJSON函数用于将对话信息保存到JSON中
-func saveConversationToJSON(role string, message string) {
+// SaveConversationToJSON函数用于将对话信息保存到JSON中
+func (xiao_wan Xiao_wan) SaveConversationToJSON(role string, message string) {
 	conversationLog = append(conversationLog, map[string]string{
 		"role":    role,
 		"message": message,
@@ -96,7 +100,7 @@ func saveConversationToJSON(role string, message string) {
 
 // Message函数用于处理用户消息
 func (xiao_wan Xiao_wan) Message(message string) (string, error) {
-	saveConversationToJSON("user", message) // 将用户消息保存到JSON
+	xiao_wan.SaveConversationToJSON("user", message) // 将用户消息保存到JSON
 	// 导入短期记忆
 	logJSON, err := json.Marshal(conversationLog)
 	if err != nil {
@@ -122,7 +126,7 @@ func (xiao_wan Xiao_wan) Message(message string) (string, error) {
 		Name:    "",
 	})
 
-	saveConversationToJSON("assistant", response) // 将助手回复保存到JSON
+	xiao_wan.SaveConversationToJSON("assistant", response) // 将助手回复保存到JSON
 
 	// 打印conversationLog的内容
 	logJSON, err = json.Marshal(conversationLog)
