@@ -321,6 +321,32 @@ func StartOne(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string, 
 	return xiao_wan
 }
 
+func StartStt(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
+	xiao_wan := Xiao_wan{
+		cfg:    cfg,
+		Client: openaiClient,
+		model:  openai.Whisper1,
+	}
+
+	return xiao_wan
+}
+
+func (xiao_wan Xiao_wan)Stt() string {
+
+	req := openai.AudioRequest{
+		Model:    xiao_wan.model,
+		FilePath: "recording.mp3",
+	}
+	resp, err := xiao_wan.Client.CreateTranscription(context.Background(), req)
+	if err != nil {
+		fmt.Printf("Transcription error: %v\n", err)
+		return ""
+	}
+	fmt.Println("Stt:" + resp.Text)
+
+	return resp.Text
+}
+
 // OpenAIError结构体用于封装OpenAI错误
 type OpenAIError struct {
 	StatusCode int

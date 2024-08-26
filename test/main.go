@@ -17,6 +17,7 @@ var cfg = config.New()
 
 // 定义一个宏控制TTS的使用，因为目前只是生成了mp3文件并没有播放
 const enableTTS = false
+const enableSTT = false
 
 func main() {
 	fmt.Println("xiao wan is starting up... Please wait a moment.")
@@ -29,7 +30,13 @@ func main() {
 	openaiClient_legs := openai.NewClientWithConfig(config)
 	openaiClient_friend_duolaameng := openai.NewClientWithConfig(config)
 
+	var xiao_wan_chat_stt xiao_wan.Xiao_wan
 	var xiao_wan_chat_tts xiao_wan.Xiao_wan
+
+	if enableSTT {
+		openaiClient_stt := openai.NewClientWithConfig(config)
+		xiao_wan_chat_stt = xiao_wan.StartStt(cfg, openaiClient_stt)
+	}
 
 	if enableTTS {
 		openaiClient_tts := openai.NewClientWithConfig(config)
@@ -49,6 +56,11 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Conversation")
 	fmt.Println("---------------------")
+
+	// 目前只是测试
+	if enableSTT {
+		xiao_wan_chat_stt.Stt()
+	}
 
 	for {
 		fmt.Print("-> ")
