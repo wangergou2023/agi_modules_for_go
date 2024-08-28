@@ -136,14 +136,17 @@ func (pm *PluginManager) GetAllPlugins() map[string]Plugin {
 	return pm.loadedPlugins
 }
 
-// GenerateOpenAIFunctionsDefinition 生成所有插件的OpenAI函数定义
-func (pm *PluginManager) GenerateOpenAIFunctionsDefinition() []openai.FunctionDefinition {
-	var definitions []openai.FunctionDefinition
+func (pm *PluginManager) GenerateOpenAItoolsDefinition() []openai.Tool {
+	var tools []openai.Tool
 
 	for _, plugin := range pm.loadedPlugins {
-		def := plugin.FunctionDefinition()
-		definitions = append(definitions, def)
+		functionDef := plugin.FunctionDefinition()
+		tool := openai.Tool{
+			Type:     openai.ToolTypeFunction,
+			Function: &functionDef,  // 直接构建 Tool 结构体
+		}
+		tools = append(tools, tool)
 	}
 
-	return definitions
+	return tools
 }

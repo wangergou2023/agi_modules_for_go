@@ -18,12 +18,12 @@ import (
 
 // 定义助手结构体，包括配置、OpenAI客户端、函数定义和聊天界面
 type Xiao_wan struct {
-	cfg                 config.Cfg
-	Client              *openai.Client
-	functionDefinitions []openai.FunctionDefinition
-	conversation        []openai.ChatCompletionMessage
-	model               string
-	plugins             *plugins.PluginManager
+	cfg          config.Cfg
+	Client       *openai.Client
+	tools        []openai.Tool
+	conversation []openai.ChatCompletionMessage
+	model        string
+	plugins      *plugins.PluginManager
 }
 
 // 定义系统提示信息，指导如何使用AI助手
@@ -168,7 +168,10 @@ func (xiao_wan Xiao_wan) sendMessage() (string, error) {
 		return "", err
 	}
 
-	if resp.Choices[0].FinishReason == openai.FinishReasonFunctionCall {
+	// fmt.Println(resp.Choices[0].FinishReason)
+
+	// 如果有工具调用，需要处理工具调用
+	if resp.Choices[0].FinishReason == openai.FinishReasonToolCalls {
 		responseContent, err := xiao_wan.handleFunctionCall(resp) // 处理函数调用
 		if err != nil {
 			return "", err
@@ -181,36 +184,55 @@ func (xiao_wan Xiao_wan) sendMessage() (string, error) {
 
 // handleFunctionCall函数用于处理OpenAI回复中的函数调用
 func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse) (string, error) {
-
-	funcName := resp.Choices[0].Message.FunctionCall.Name // 获取函数名称
+	toolCall := resp.Choices[0].Message.ToolCalls[0]
+	funcName := toolCall.Function.Name // 获取函数名称
 	fmt.Println("获取函数名称", funcName)
-	ok := xiao_wan.plugins.IsPluginLoaded(funcName) // 检查是否加载了相应插件
-	fmt.Println("检查是否加载了相应插件", ok)
-	if !ok {
+
+	// 检查是否加载了相应插件
+	if !xiao_wan.plugins.IsPluginLoaded(funcName) {
 		return "", fmt.Errorf("no plugin loaded with name %v", funcName)
 	}
 
-	jsonResponse, err := xiao_wan.plugins.CallPlugin(resp.Choices[0].Message.FunctionCall.Name, resp.Choices[0].Message.FunctionCall.Arguments) // 调用插件
-
+	// 调用插件
+	jsonResponse, err := xiao_wan.plugins.CallPlugin(funcName, toolCall.Function.Arguments)
 	if err != nil {
 		return "", err
 	}
 
+	// 构造工具调用请求的消息，使用ToolCalls字段
 	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleFunction,
-		Content: jsonResponse,
-		Name:    funcName,
+		Role: openai.ChatMessageRoleAssistant,
+		ToolCalls: []openai.ToolCall{ // 使用ToolCalls切片
+			{
+				ID:   toolCall.ID,
+				Type: toolCall.Type, // 假设ToolCall有Type字段，表示调用类型
+				Function: openai.FunctionCall{
+					Name:      toolCall.Function.Name,
+					Arguments: toolCall.Function.Arguments,
+				},
+			},
+		},
 	})
 
-	resp, err = xiao_wan.sendRequestToOpenAI() // 发送请求到OpenAI
+	// 构造工具调用结果的消息
+	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
+		Role:       openai.ChatMessageRoleTool,
+		Content:    jsonResponse,
+		ToolCallID: toolCall.ID, // 保持与工具调用一致
+	})
+
+	// 再次发送请求到OpenAI，获取下一个回复
+	resp, err = xiao_wan.sendRequestToOpenAI()
 	if err != nil {
 		return "", err
 	}
 
-	// 部分模型会循环重复，这里暂时先不支持了
-	// if resp.Choices[0].FinishReason == openai.FinishReasonFunctionCall {
-	// 	return xiao_wan.handleFunctionCall(resp) // 递归处理函数调用
-	// }
+	// fmt.Println(resp.Choices[0].FinishReason)
+
+	// 如果再一次触发工具调用，可能需要递归处理
+	if resp.Choices[0].FinishReason == openai.FinishReasonToolCalls {
+		return xiao_wan.handleFunctionCall(resp) // 递归处理函数调用
+	}
 
 	return resp.Choices[0].Message.Content, nil
 }
@@ -220,10 +242,9 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI() (*openai.ChatCompletionResponse, 
 	resp, err := xiao_wan.Client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:        xiao_wan.model,
-			Messages:     xiao_wan.conversation,
-			Functions:    xiao_wan.functionDefinitions,
-			FunctionCall: "auto",
+			Model:    xiao_wan.model,
+			Messages: xiao_wan.conversation,
+			Tools:    xiao_wan.tools,
 		},
 	)
 
@@ -251,7 +272,7 @@ func Start(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
 		fmt.Printf("Error loading plugins: %v\n", err)
 	}
 	fmt.Println("Plugins loaded successfully")
-	xiao_wan.functionDefinitions = xiao_wan.plugins.GenerateOpenAIFunctionsDefinition()
+	xiao_wan.tools = xiao_wan.plugins.GenerateOpenAItoolsDefinition()
 
 	// 重置对话
 	xiao_wan.conversation = []openai.ChatCompletionMessage{}
@@ -294,7 +315,7 @@ func StartOne(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string, 
 		fmt.Printf("Error loading plugins: %v\n", err)
 	}
 	fmt.Println("Plugins loaded successfully")
-	xiao_wan.functionDefinitions = xiao_wan.plugins.GenerateOpenAIFunctionsDefinition()
+	xiao_wan.tools = xiao_wan.plugins.GenerateOpenAItoolsDefinition()
 
 	// 重置对话
 	xiao_wan.conversation = []openai.ChatCompletionMessage{}
@@ -331,7 +352,7 @@ func StartStt(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
 	return xiao_wan
 }
 
-func (xiao_wan Xiao_wan)Stt() string {
+func (xiao_wan Xiao_wan) Stt() string {
 
 	req := openai.AudioRequest{
 		Model:    xiao_wan.model,
