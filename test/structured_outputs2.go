@@ -40,12 +40,13 @@ func main() {
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: "你是一个群聊助手，你的名字是小白。你的职责是帮助主人传递消息，并通知群里的其他成员，例如小明和小红。请确保正确传达消息，并在必要时回应。",
+				Content: "你是一个群聊助手，你的名字是小白。",
 			},
 			{
 				Role: openai.ChatMessageRoleUser,
-				// Content: "主人：小白请通知小明明天来我家吃饭",
-				Content: "主人：小白请给大家打招呼",
+				// Content: "主人：小白你好",
+				Content: "主人：小白请通知小明明天来我家吃饭",
+				// Content: "主人：小白请给大家打招呼",
 			},
 			{
 				Role:    openai.ChatMessageRoleUser,
