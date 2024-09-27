@@ -27,6 +27,7 @@ func main() {
 	//need"/v1"
 	config.BaseURL = cfg.OpenAibaseURL()
 	openaiClient := openai.NewClientWithConfig(config)
+	openaiClient_friend_fengjian := openai.NewClientWithConfig(config)
 
 	var xiao_wan_chat_stt xiao_wan.Xiao_wan
 	var xiao_wan_chat_tts xiao_wan.Xiao_wan
@@ -53,6 +54,7 @@ func main() {
 	}
 
 	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient)
+	xiao_wan_friend_fengjian := xiao_wan.StartOne(cfg, openaiClient_friend_fengjian, xiao_wan.FengjianPrompt, "for_before_chat")
 
 	// 启动MQTT订阅
 	go startMQTTClient(&xiao_wan_chat)
@@ -78,8 +80,13 @@ func main() {
 			xiao_wan_friend_duolaameng.SaveConversationToJSON("your_friend", duolaameng_response)
 		}
 
-		response, _ := xiao_wan_chat.Message(text)
+		response, result, _ := xiao_wan_chat.Message(text)
 		fmt.Printf("xiao wan:%s\r\n", response)
+
+		if result.Responses[0].TargetName == "风间" {
+			response2, _ := xiao_wan_friend_fengjian.MessageOne(result.YourName + "：" + result.Responses[0].Message)
+			fmt.Printf("fengjian:%s\r\n", response2)
+		}
 
 		if enableTTS {
 			response2, _ := xiao_wan_chat_tts.MessageOne(response)

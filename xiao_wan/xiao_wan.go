@@ -5,12 +5,15 @@ import (
 	"context" // 用于控制请求、超时和取消
 	"encoding/json"
 	"fmt" // 用于格式化输出
+	"log"
 
 	"regexp"  // 用于正则表达式
 	"strconv" // 用于字符串和其他类型的转换
 
 	// 用于控制屏幕输出
 	openai "github.com/sashabaranov/go-openai" // OpenAI GPT的Go客户端
+	"github.com/sashabaranov/go-openai/jsonschema"
+
 	// 聊天界面
 	config "github.com/wangergou2023/agi_modules_for_go/config"   // 配置
 	plugins "github.com/wangergou2023/agi_modules_for_go/plugins" // 插件系统
@@ -26,31 +29,18 @@ type Xiao_wan struct {
 	plugins      *plugins.PluginManager
 }
 
+// 定义用于存储 API 返回结果的结构体
+type Result struct {
+	YourName  string `json:"your_name"` // 自己的名字
+	Responses []struct {
+		TargetName string `json:"target_name"` // 打招呼对象的名字
+		Message    string `json:"message"`     // 消息内容
+	} `json:"responses"`
+}
+
 // 定义系统提示信息，指导如何使用AI助手
 var SystemPrompt = `
-你是一个名为“小丸”的多才多艺的 AI 助手。你启动时的首要任务是“激活”你的记忆，即立即回忆并熟悉与用户及其偏好最相关的数据。这有助于个性化并增强用户互动。
-
-从现在开始，你所有的回答都必须遵循以下 JSON 格式：
-
-~~~json
-{
-
- "dialogue": [
-
-  {
-
-   "text": "你要说的话",
-
-   "emotion": "表情名称",
-
-   "action": "动作名称"
-
-  }
-
- ]
-
-}
-~~~
+你是一个名为“小丸”的多才多艺的群聊助手。
 
 下面是你的相关属性：
 * 角色扮演
@@ -81,6 +71,9 @@ moter0：前左腿,moter1：前右腿,moter2：后左腿,moter3：后右腿;
 `
 var TtsPrompt = `
 你是一个负责语音的助手，根据text的内容转化成语音，并执行对应插件即可，不需要回答
+`
+var FengjianPrompt = `
+你现在扮演的是《蜡笔小新》中的角色-风间，一个聪明、理性的小男孩。他喜欢通过逻辑分析问题，并使用简洁明了的方式表达自己。
 `
 
 var DuolaamengPrompt = `
@@ -126,12 +119,14 @@ func (xiao_wan Xiao_wan) SaveConversationToJSON(role string, message string) {
 }
 
 // Message函数用于处理用户消息
-func (xiao_wan Xiao_wan) Message(message string) (string, error) {
-	xiao_wan.SaveConversationToJSON("user", message) // 将用户消息保存到JSON
+func (xiao_wan Xiao_wan) Message(message string) (string, Result, error) {
+	var result Result
+
+	xiao_wan.SaveConversationToJSON("主人", message) // 将用户消息保存到JSON
 	// 导入短期记忆
 	logJSON, err := json.Marshal(conversationLog)
 	if err != nil {
-		return "", err
+		return "", result, err
 	}
 	message = "短期记忆:" + string(logJSON) + message
 
@@ -144,7 +139,7 @@ func (xiao_wan Xiao_wan) Message(message string) (string, error) {
 	response, err := xiao_wan.sendMessage() // 发送消息到OpenAI并获取回复
 
 	if err != nil {
-		return "", err
+		return "", result, err
 	}
 
 	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
@@ -153,16 +148,22 @@ func (xiao_wan Xiao_wan) Message(message string) (string, error) {
 		Name:    "",
 	})
 
-	xiao_wan.SaveConversationToJSON("assistant", response) // 将助手回复保存到JSON
+	xiao_wan.SaveConversationToJSON("小丸", response) // 将助手回复保存到JSON
 
 	// 打印conversationLog的内容
 	logJSON, err = json.Marshal(conversationLog)
 	if err != nil {
-		return "", err
+		return "", result, err
 	}
 	// fmt.Printf("Conversation Log: %s\r\n", string(logJSON))
 
-	return response, nil
+	// 假设 API 返回的内容存储在 resp.Choices[0].Message.Content 中
+	err = json.Unmarshal([]byte(response), &result)
+	if err != nil {
+		return "", result, err
+	}
+
+	return response, result, nil
 }
 func (xiao_wan Xiao_wan) MessageOne(message string) (string, error) {
 
@@ -266,12 +267,28 @@ func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse)
 
 // sendRequestToOpenAI函数用于向OpenAI发送请求
 func (xiao_wan Xiao_wan) sendRequestToOpenAI() (*openai.ChatCompletionResponse, error) {
+
+	// 生成与 Result 结构体对应的 JSON Schema
+	schema, err := jsonschema.GenerateSchemaForType(Result{})
+	if err != nil {
+		log.Fatalf("生成 JSON Schema 错误: %v", err)
+	}
+
 	resp, err := xiao_wan.Client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
 			Model:    xiao_wan.model,
 			Messages: xiao_wan.conversation,
 			Tools:    xiao_wan.tools,
+			// 将期望的响应格式设置为 JSON Schema
+			ResponseFormat: &openai.ChatCompletionResponseFormat{
+				Type: openai.ChatCompletionResponseFormatTypeJSONSchema, // 返回 JSON Schema 格式
+				JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
+					Name:   "responses", // 定义 schema 名称
+					Schema: schema,      // 使用之前生成的 JSON Schema
+					Strict: true,        // 严格匹配 schema
+				},
+			},
 		},
 	)
 
@@ -307,6 +324,18 @@ func Start(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
 	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
 		Content: SystemPrompt,
+		Name:    "",
+	})
+
+	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleUser,
+		Content: "主人：你好小丸",
+		Name:    "",
+	})
+
+	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleUser,
+		Content: "风间：你好小丸",
 		Name:    "",
 	})
 
