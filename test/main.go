@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -21,6 +22,11 @@ const enableSTT = false
 const enableNeed = false
 
 func main() {
+	targets := map[string]string{
+		"1": "小丸",
+		"2": "风间",
+	}
+
 	fmt.Println("xiao wan is starting up... Please wait a moment.")
 
 	config := openai.DefaultConfig(cfg.OpenAiAPIKey())
@@ -71,25 +77,69 @@ func main() {
 	}
 
 	for {
-		fmt.Print("-> ")
-		text, _ := reader.ReadString('\n')
-		text = strings.Replace(text, "\n", "", -1)
-		if enableNeed {
-			duolaameng_response, _ := xiao_wan_friend_duolaameng.MessageOne(text)
-			fmt.Printf("duolaameng:%s\r\n", duolaameng_response)
-			xiao_wan_friend_duolaameng.SaveConversationToJSON("your_friend", duolaameng_response)
+		fmt.Println("选择对话对象: 1. 小丸 2. 风间")
+		choice, _ := reader.ReadString('\n')
+		choice = strings.TrimSpace(choice)
+
+		targetName, ok := targets[choice]
+		if !ok {
+			fmt.Println("无效选择，请重试")
+			continue
 		}
 
-		response, result, _ := xiao_wan_chat.Message(text)
+		fmt.Print("-> ")
+		text, _ := reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+
+		// 构建Result
+		result_zhuren := xiao_wan.Result{
+			Responses: []struct {
+				TargetName string `json:"target_name"`
+				Message    string `json:"message"`
+			}{
+				{
+					TargetName: targetName,
+					Message:    text,
+				},
+			},
+			YourName: "主人",
+		}
+
+		// 将 Result 转换为 JSON 字符串
+		resultJSON, err := json.Marshal(result_zhuren)
+		if err != nil {
+			fmt.Println("转换为 JSON 失败:", err)
+			continue
+		}
+
+		fmt.Printf("zhu ren:%s\r\n", string(resultJSON))
+
+		if enableNeed {
+			duolaameng_response, _, _ := xiao_wan_friend_duolaameng.MessageOne(text)
+			fmt.Printf("duolaameng:%s\r\n", duolaameng_response)
+			xiao_wan_friend_duolaameng.SaveConversationToJSON(duolaameng_response)
+		}
+
+		response, result, _ := xiao_wan_chat.Message(string(resultJSON))
 		fmt.Printf("xiao wan:%s\r\n", response)
 
-		if result.Responses[0].TargetName == "风间" {
-			response2, _ := xiao_wan_friend_fengjian.MessageOne(result.YourName + "：" + result.Responses[0].Message)
-			fmt.Printf("fengjian:%s\r\n", response2)
+		for _, res := range result.Responses {
+			if res.TargetName == "风间" {
+				response2, result2, _ := xiao_wan_friend_fengjian.MessageOne(result.YourName + "：" + res.Message)
+				fmt.Printf("feng jian:%s\r\n", response2)
+				fmt.Printf("feng jian:%s\r\n", result2)
+				// for _, res := range result2.Responses {
+				// 	if res.TargetName == "小丸" {
+				// 		response3, result3, _ := xiao_wan_chat.Message(result2.YourName + "：" + res.Message)
+				// 		fmt.Printf("xiao wan:%s\r\n", response3)
+				// 		fmt.Printf("xiao wan:%s\r\n", result3)
+				// 	}
+				// }
+			}
 		}
 
 		if enableTTS {
-			response2, _ := xiao_wan_chat_tts.MessageOne(response)
+			response2, _, _ := xiao_wan_chat_tts.MessageOne(response)
 			fmt.Printf("xiao wan tts:%s\r\n", response2)
 		}
 

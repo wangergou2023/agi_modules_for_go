@@ -111,9 +111,8 @@ var DuolaamengPrompt = `
 var conversationLog []map[string]string
 
 // SaveConversationToJSON函数用于将对话信息保存到JSON中
-func (xiao_wan Xiao_wan) SaveConversationToJSON(role string, message string) {
+func (xiao_wan Xiao_wan) SaveConversationToJSON(message string) {
 	conversationLog = append(conversationLog, map[string]string{
-		"role":    role,
 		"message": message,
 	})
 }
@@ -122,7 +121,7 @@ func (xiao_wan Xiao_wan) SaveConversationToJSON(role string, message string) {
 func (xiao_wan Xiao_wan) Message(message string) (string, Result, error) {
 	var result Result
 
-	xiao_wan.SaveConversationToJSON("主人", message) // 将用户消息保存到JSON
+	xiao_wan.SaveConversationToJSON(message) // 将用户消息保存到JSON
 	// 导入短期记忆
 	logJSON, err := json.Marshal(conversationLog)
 	if err != nil {
@@ -148,14 +147,14 @@ func (xiao_wan Xiao_wan) Message(message string) (string, Result, error) {
 		Name:    "",
 	})
 
-	xiao_wan.SaveConversationToJSON("小丸", response) // 将助手回复保存到JSON
+	xiao_wan.SaveConversationToJSON(response) // 将助手回复保存到JSON
 
 	// 打印conversationLog的内容
 	logJSON, err = json.Marshal(conversationLog)
 	if err != nil {
 		return "", result, err
 	}
-	// fmt.Printf("Conversation Log: %s\r\n", string(logJSON))
+	fmt.Printf("Conversation Log: %s\r\n", string(logJSON))
 
 	// 假设 API 返回的内容存储在 resp.Choices[0].Message.Content 中
 	err = json.Unmarshal([]byte(response), &result)
@@ -165,8 +164,8 @@ func (xiao_wan Xiao_wan) Message(message string) (string, Result, error) {
 
 	return response, result, nil
 }
-func (xiao_wan Xiao_wan) MessageOne(message string) (string, error) {
-
+func (xiao_wan Xiao_wan) MessageOne(message string) (string, Result, error) {
+	var result Result
 	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: message,
@@ -176,7 +175,7 @@ func (xiao_wan Xiao_wan) MessageOne(message string) (string, error) {
 	response, err := xiao_wan.sendMessage() // 发送消息到OpenAI并获取回复
 
 	if err != nil {
-		return "", err
+		return "", result, err
 	}
 
 	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
@@ -185,7 +184,13 @@ func (xiao_wan Xiao_wan) MessageOne(message string) (string, error) {
 		Name:    "",
 	})
 
-	return response, nil
+	// 假设 API 返回的内容存储在 resp.Choices[0].Message.Content 中
+	err = json.Unmarshal([]byte(response), &result)
+	if err != nil {
+		return "", result, err
+	}
+
+	return response, result, nil
 }
 
 // sendMessage函数用于向OpenAI发送请求并获取回复
