@@ -120,21 +120,29 @@ func main() {
 			xiao_wan_friend_duolaameng.SaveConversationToJSON(duolaameng_response)
 		}
 
-		response, result, _ := xiao_wan_chat.Message(string(resultJSON))
-		fmt.Printf("xiao wan:%s\r\n", response)
+		var response string
+		var result xiao_wan.Result
+
+		if result_zhuren.Responses[0].TargetName == "小丸" {
+			response, result, _ = xiao_wan_chat.Message(string(resultJSON))
+			fmt.Printf("xiao wan:%s\r\n", response)
+		} else if result_zhuren.Responses[0].TargetName == "风间" {
+			response, result, _ = xiao_wan_chat.Message(string(resultJSON))
+			fmt.Printf("feng jian:%s\r\n", response)
+		}
 
 		for _, res := range result.Responses {
 			if res.TargetName == "风间" {
 				response2, result2, _ := xiao_wan_friend_fengjian.MessageOne(result.YourName + "：" + res.Message)
 				fmt.Printf("feng jian:%s\r\n", response2)
 				fmt.Printf("feng jian:%s\r\n", result2)
-				// for _, res := range result2.Responses {
-				// 	if res.TargetName == "小丸" {
-				// 		response3, result3, _ := xiao_wan_chat.Message(result2.YourName + "：" + res.Message)
-				// 		fmt.Printf("xiao wan:%s\r\n", response3)
-				// 		fmt.Printf("xiao wan:%s\r\n", result3)
-				// 	}
-				// }
+				for _, res := range result2.Responses {
+					if res.TargetName == "小丸" {
+						response3, result3, _ := xiao_wan_chat.Message(result2.YourName + "：" + res.Message)
+						fmt.Printf("xiao wan:%s\r\n", response3)
+						fmt.Printf("xiao wan:%s\r\n", result3)
+					}
+				}
 			}
 		}
 
