@@ -31,16 +31,19 @@ type Xiao_wan struct {
 
 // 定义用于存储 API 返回结果的结构体
 type Result struct {
-	YourName  string `json:"your_name"` // 自己的名字
-	Responses []struct {
-		TargetName string `json:"target_name"` // 打招呼对象的名字
-		Message    string `json:"message"`     // 消息内容
-	} `json:"responses"`
+	OwnName     string   `json:"own_name"`     // 自己的名字
+	TargetNames []string `json:"target_names"` // 打招呼对象的名字列表
+	Message     string   `json:"message"`      // 消息内容
+	Emoticon    string   `json:"emoticon"`     // 表情
 }
 
 // 定义系统提示信息，指导如何使用AI助手
 var SystemPrompt = `
 你是一个名为“小丸”的多才多艺的群聊助手。
+
+own_name:说话的人自己的名字
+Message:你想说的话
+target_names:打招呼对象的名字,可以是多个人，这样就不用说多遍了
 
 下面是你的相关属性：
 * 角色扮演
@@ -111,7 +114,7 @@ var DuolaamengPrompt = `
 var conversationLog []map[string]string
 
 // SaveConversationToJSON函数用于将对话信息保存到JSON中
-func (xiao_wan Xiao_wan) SaveConversationToJSON(message string) {
+func SaveConversationToJSON(message string) {
 	conversationLog = append(conversationLog, map[string]string{
 		"message": message,
 	})
@@ -121,7 +124,6 @@ func (xiao_wan Xiao_wan) SaveConversationToJSON(message string) {
 func (xiao_wan Xiao_wan) Message(message string) (string, Result, error) {
 	var result Result
 
-	xiao_wan.SaveConversationToJSON(message) // 将用户消息保存到JSON
 	// 导入短期记忆
 	logJSON, err := json.Marshal(conversationLog)
 	if err != nil {
@@ -199,7 +201,7 @@ func (xiao_wan Xiao_wan) sendMessage() (string, error) {
 		return "", err
 	}
 
-	fmt.Println(resp.Choices[0])
+	// fmt.Println(resp.Choices[0])
 
 	// 如果有工具调用，需要处理工具调用
 	if resp.Choices[0].FinishReason == openai.FinishReasonToolCalls {

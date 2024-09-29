@@ -11,7 +11,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/wangergou2023/agi_modules_for_go/config"
-	"github.com/wangergou2023/agi_modules_for_go/xiao_wan"
+	xiao_wan "github.com/wangergou2023/agi_modules_for_go/xiao_wan"
 )
 
 var cfg = config.New()
@@ -25,6 +25,7 @@ func main() {
 	targets := map[string]string{
 		"1": "小丸",
 		"2": "风间",
+		"3": "旁观对话",
 	}
 
 	fmt.Println("xiao wan is starting up... Please wait a moment.")
@@ -73,8 +74,11 @@ func main() {
 		xiao_wan_chat_stt.Stt()
 	}
 
+	var response string
+	var result xiao_wan.Result
+
 	for {
-		fmt.Println("选择对话对象: 1. 小丸 2. 风间")
+		fmt.Println("选择对话对象: 1. 小丸 2. 风间 3. 旁观对话")
 		choice, _ := reader.ReadString('\n')
 		choice = strings.TrimSpace(choice)
 
@@ -84,63 +88,58 @@ func main() {
 			continue
 		}
 
-		fmt.Print("-> ")
-		text, _ := reader.ReadString('\n')
-		text = strings.TrimSpace(text)
+		// 如果选择的是旁观对话，输出最新的对话内容，但不输入新消息
+		if targetName == "旁观对话" {
+			if response == "" {
+				fmt.Println("当前没有可以旁观的对话。")
+				continue
+			} else {
+				fmt.Printf("旁观对话:\n%s\n", response)
+			}
+		} else {
 
-		// 构建Result
-		result_zhuren := xiao_wan.Result{
-			Responses: []struct {
-				TargetName string `json:"target_name"`
-				Message    string `json:"message"`
-			}{
-				{
-					TargetName: targetName,
-					Message:    text,
-				},
-			},
-			YourName: "主人",
+			// 正常输入对话
+			fmt.Print("-> ")
+			text, _ := reader.ReadString('\n')
+			text = strings.TrimSpace(text)
+
+			// 构建Result
+			result = xiao_wan.Result{
+				TargetNames: []string{targetName},
+				Message:     text,
+				OwnName:     "主人",
+			}
+
+			// 将 Result 转换为 JSON 字符串
+			resultJSON, err := json.Marshal(result)
+			if err != nil {
+				fmt.Println("转换为 JSON 失败:", err)
+				continue
+			}
+			response = string(resultJSON)
+			// fmt.Printf("zhu ren:%s\r\n", response)
+			fmt.Printf("zhu ren:%s\r\n", result)
+			xiao_wan.SaveConversationToJSON(response)
 		}
 
-		// 将 Result 转换为 JSON 字符串
-		resultJSON, err := json.Marshal(result_zhuren)
-		if err != nil {
-			fmt.Println("转换为 JSON 失败:", err)
-			continue
-		}
+		// 继续处理对话中的其他消息
+		for _, res := range result.TargetNames {
+			if res == "小丸" {
+				response, result, _ = xiao_wan_chat.Message(response)
+				// fmt.Printf("xiao wan:%s\r\n", response)
+				fmt.Printf("xiao wan:%s\r\n", result)
+				xiao_wan.SaveConversationToJSON(response)
 
-		fmt.Printf("zhu ren:%s\r\n", string(resultJSON))
-
-		var response string
-		var result xiao_wan.Result
-
-		if result_zhuren.Responses[0].TargetName == "小丸" {
-			response, result, _ = xiao_wan_chat.Message(string(resultJSON))
-			fmt.Printf("xiao wan:%s\r\n", response)
-		} else if result_zhuren.Responses[0].TargetName == "风间" {
-			response, result, _ = xiao_wan_friend_fengjian.Message(string(resultJSON))
-			fmt.Printf("feng jian:%s\r\n", response)
-		}
-
-		var response2 string
-		var result2 xiao_wan.Result
-
-		for _, res := range result.Responses {
-			if res.TargetName == "小丸" {
-				response2, result2, _ = xiao_wan_chat.Message(response)
-				fmt.Printf("xiao wan:%s\r\n", response2)
-				fmt.Printf("xiao wan:%s\r\n", result2)
-
-			} else if res.TargetName == "风间" {
-				response2, result2, _ = xiao_wan_friend_fengjian.Message(response)
-				fmt.Printf("feng jian:%s\r\n", response2)
-				fmt.Printf("feng jian:%s\r\n", result2)
+			} else if res == "风间" {
+				response, result, _ = xiao_wan_friend_fengjian.Message(response)
+				// fmt.Printf("feng jian:%s\r\n", response)
+				fmt.Printf("feng jian:%s\r\n", result)
+				xiao_wan.SaveConversationToJSON(response)
 			}
 		}
 
 		if enableTTS {
-			response2, _, _ := xiao_wan_chat_tts.MessageOne(response)
-			fmt.Printf("xiao wan tts:%s\r\n", response2)
+			go xiao_wan_chat_tts.MessageOne(response)
 		}
 
 		if enableNeed {
