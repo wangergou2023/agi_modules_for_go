@@ -154,7 +154,7 @@ func (xiao_wan Xiao_wan) Message(message string) (string, Result, error) {
 	if err != nil {
 		return "", result, err
 	}
-	fmt.Printf("Conversation Log: %s\r\n", string(logJSON))
+	// fmt.Printf("Conversation Log: %s\r\n", string(logJSON))
 
 	// 假设 API 返回的内容存储在 resp.Choices[0].Message.Content 中
 	err = json.Unmarshal([]byte(response), &result)

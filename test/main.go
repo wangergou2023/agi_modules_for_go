@@ -78,25 +78,23 @@ func main() {
 	var result xiao_wan.Result
 
 	for {
-		fmt.Println("选择对话对象: 1. 小丸 2. 风间 3. 旁观对话")
+		fmt.Println("选择对话对象: 1. 小丸 2. 风间 3. 旁观对话 (按回车直接旁观)")
 		choice, _ := reader.ReadString('\n')
 		choice = strings.TrimSpace(choice)
 
-		targetName, ok := targets[choice]
-		if !ok {
-			fmt.Println("无效选择，请重试")
-			continue
-		}
-
 		// 如果选择的是旁观对话，输出最新的对话内容，但不输入新消息
-		if targetName == "旁观对话" {
+		if choice == "3" || choice == "" {
 			if response == "" {
 				fmt.Println("当前没有可以旁观的对话。")
 				continue
-			} else {
-				fmt.Printf("旁观对话:\n%s\n", response)
 			}
 		} else {
+
+			targetName, ok := targets[choice]
+			if !ok {
+				fmt.Println("无效选择，请重试")
+				continue
+			}
 
 			// 正常输入对话
 			fmt.Print("-> ")
