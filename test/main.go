@@ -39,7 +39,6 @@ func main() {
 	var xiao_wan_chat_tts xiao_wan.Xiao_wan
 	var xiao_wan_chat_face xiao_wan.Xiao_wan
 	var xiao_wan_chat_legs xiao_wan.Xiao_wan
-	var xiao_wan_friend_duolaameng xiao_wan.Xiao_wan
 	if enableSTT {
 		openaiClient_stt := openai.NewClientWithConfig(config)
 		xiao_wan_chat_stt = xiao_wan.StartStt(cfg, openaiClient_stt)
@@ -53,10 +52,8 @@ func main() {
 	if enableNeed {
 		openaiClient_face := openai.NewClientWithConfig(config)
 		openaiClient_legs := openai.NewClientWithConfig(config)
-		openaiClient_friend_duolaameng := openai.NewClientWithConfig(config)
 		xiao_wan_chat_face = xiao_wan.StartOne(cfg, openaiClient_face, xiao_wan.FacePrompt, "for_after_chat2")
 		xiao_wan_chat_legs = xiao_wan.StartOne(cfg, openaiClient_legs, xiao_wan.LegsPrompt, "for_after_chat3")
-		xiao_wan_friend_duolaameng = xiao_wan.StartOne(cfg, openaiClient_friend_duolaameng, xiao_wan.DuolaamengPrompt, "for_before_chat")
 	}
 
 	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient)
@@ -114,12 +111,6 @@ func main() {
 
 		fmt.Printf("zhu ren:%s\r\n", string(resultJSON))
 
-		if enableNeed {
-			duolaameng_response, _, _ := xiao_wan_friend_duolaameng.MessageOne(text)
-			fmt.Printf("duolaameng:%s\r\n", duolaameng_response)
-			xiao_wan_friend_duolaameng.SaveConversationToJSON(duolaameng_response)
-		}
-
 		var response string
 		var result xiao_wan.Result
 
@@ -127,22 +118,23 @@ func main() {
 			response, result, _ = xiao_wan_chat.Message(string(resultJSON))
 			fmt.Printf("xiao wan:%s\r\n", response)
 		} else if result_zhuren.Responses[0].TargetName == "风间" {
-			response, result, _ = xiao_wan_chat.Message(string(resultJSON))
+			response, result, _ = xiao_wan_friend_fengjian.Message(string(resultJSON))
 			fmt.Printf("feng jian:%s\r\n", response)
 		}
 
+		var response2 string
+		var result2 xiao_wan.Result
+
 		for _, res := range result.Responses {
-			if res.TargetName == "风间" {
-				response2, result2, _ := xiao_wan_friend_fengjian.MessageOne(result.YourName + "：" + res.Message)
+			if res.TargetName == "小丸" {
+				response2, result2, _ = xiao_wan_chat.Message(response)
+				fmt.Printf("xiao wan:%s\r\n", response2)
+				fmt.Printf("xiao wan:%s\r\n", result2)
+
+			} else if res.TargetName == "风间" {
+				response2, result2, _ = xiao_wan_friend_fengjian.Message(response)
 				fmt.Printf("feng jian:%s\r\n", response2)
 				fmt.Printf("feng jian:%s\r\n", result2)
-				for _, res := range result2.Responses {
-					if res.TargetName == "小丸" {
-						response3, result3, _ := xiao_wan_chat.Message(result2.YourName + "：" + res.Message)
-						fmt.Printf("xiao wan:%s\r\n", response3)
-						fmt.Printf("xiao wan:%s\r\n", result3)
-					}
-				}
 			}
 		}
 

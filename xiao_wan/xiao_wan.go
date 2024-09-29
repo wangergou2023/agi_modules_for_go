@@ -147,8 +147,6 @@ func (xiao_wan Xiao_wan) Message(message string) (string, Result, error) {
 		Name:    "",
 	})
 
-	xiao_wan.SaveConversationToJSON(response) // 将助手回复保存到JSON
-
 	// 打印conversationLog的内容
 	logJSON, err = json.Marshal(conversationLog)
 	if err != nil {
