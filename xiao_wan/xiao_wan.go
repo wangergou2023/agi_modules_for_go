@@ -279,6 +279,33 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI() (*openai.ChatCompletionResponse, 
 		log.Fatalf("生成 JSON Schema 错误: %v", err)
 	}
 
+	resultJSON, err := json.Marshal(xiao_wan.conversation)
+	if err != nil {
+		fmt.Println("转换为 JSON 失败:", err)
+	}
+	response := string(resultJSON)
+	fmt.Println(response)
+
+	// 遍历响应中的消息，判断是否包含 "role": "tool"
+	for _, message := range xiao_wan.conversation {
+		if message.Role == "tool" {
+			resp, err := xiao_wan.Client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model:    xiao_wan.model,
+					Messages: xiao_wan.conversation,
+					Tools:    xiao_wan.tools,
+				},
+			)
+
+			if err != nil {
+				xiao_wan.openaiError(err) // 处理OpenAI错误
+				return nil, err
+			}
+			return &resp, nil
+		}
+	}
+
 	resp, err := xiao_wan.Client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
@@ -304,51 +331,7 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI() (*openai.ChatCompletionResponse, 
 	return &resp, nil
 }
 
-// Start函数用于启动助手
-func Start(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
-	xiao_wan := Xiao_wan{
-		cfg:    cfg,
-		Client: openaiClient,
-		model:  openai.GPT4oMini,
-	}
-
-	// 创建一个新的 PluginManager 实例
-	xiao_wan.plugins = plugins.NewPluginManager(cfg, openaiClient)
-
-	// 加载插件目录中的所有插件
-	err := xiao_wan.plugins.LoadPlugins("for_chat")
-	if err != nil {
-		fmt.Printf("Error loading plugins: %v\n", err)
-	}
-	fmt.Println("Plugins loaded successfully")
-	xiao_wan.tools = xiao_wan.plugins.GenerateOpenAItoolsDefinition()
-
-	// 重置对话
-	xiao_wan.conversation = []openai.ChatCompletionMessage{}
-	// 添加系统提示到对话
-	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
-		Content: SystemPrompt,
-		Name:    "",
-	})
-
-	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleUser,
-		Content: "主人：你好小丸",
-		Name:    "",
-	})
-
-	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleUser,
-		Content: "风间：你好小丸",
-		Name:    "",
-	})
-
-	fmt.Println("xiao wan chat is ready!")
-	return xiao_wan
-}
-
-func StartOne(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string, compiledDir string) Xiao_wan {
+func Start(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string, compiledDir string) Xiao_wan {
 	xiao_wan := Xiao_wan{
 		cfg:    cfg,
 		Client: openaiClient,

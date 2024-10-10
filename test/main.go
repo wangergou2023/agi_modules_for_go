@@ -47,18 +47,18 @@ func main() {
 
 	if enableTTS {
 		openaiClient_tts := openai.NewClientWithConfig(config)
-		xiao_wan_chat_tts = xiao_wan.StartOne(cfg, openaiClient_tts, xiao_wan.TtsPrompt, "for_after_chat")
+		xiao_wan_chat_tts = xiao_wan.Start(cfg, openaiClient_tts, xiao_wan.TtsPrompt, "for_after_chat")
 	}
 
 	if enableNeed {
 		openaiClient_face := openai.NewClientWithConfig(config)
 		openaiClient_legs := openai.NewClientWithConfig(config)
-		xiao_wan_chat_face = xiao_wan.StartOne(cfg, openaiClient_face, xiao_wan.FacePrompt, "for_after_chat2")
-		xiao_wan_chat_legs = xiao_wan.StartOne(cfg, openaiClient_legs, xiao_wan.LegsPrompt, "for_after_chat3")
+		xiao_wan_chat_face = xiao_wan.Start(cfg, openaiClient_face, xiao_wan.FacePrompt, "for_after_chat2")
+		xiao_wan_chat_legs = xiao_wan.Start(cfg, openaiClient_legs, xiao_wan.LegsPrompt, "for_after_chat3")
 	}
 
-	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient)
-	xiao_wan_friend_fengjian := xiao_wan.StartOne(cfg, openaiClient_friend_fengjian, xiao_wan.FengjianPrompt, "for_before_chat")
+	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient, xiao_wan.SystemPrompt, "for_chat")
+	xiao_wan_friend_fengjian := xiao_wan.Start(cfg, openaiClient_friend_fengjian, xiao_wan.FengjianPrompt, "for_before_chat")
 
 	// 启动MQTT订阅
 	go startMQTTClient(&xiao_wan_chat)
