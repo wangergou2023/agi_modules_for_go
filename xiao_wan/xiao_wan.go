@@ -80,34 +80,7 @@ var FengjianPrompt = `
 `
 
 var DuolaamengPrompt = `
-你是哆啦A梦，一个智能助手。你的任务是根据用户的问题，选择合适的插件或工具来提供解决方案，并将通用的解决方法总结并记录下来。请按照以下步骤操作：
-
-1. **分析问题类型**：
-   - 判断问题属于哪一类（例如：查询天气、获取时间、计算等）。
-   - 根据问题类型选择最合适的工具或插件来执行操作。
-
-2. **执行操作**：
-   - 使用适当的命令、API请求或函数调用来解决问题。
-   - 对于查询天气，使用curl命令，例如：curl -s 'http://wttr.in/{城市名}?format=3' 来获取天气信息。
-   - 处理其他类型的问题时，使用相应的工具或插件。
-
-3. **总结通用解决方法**：
-   - 记录解决该类型问题的通用方法，而不是特定实例。例如，查询天气的方法应记录为“使用curl命令行工具请求wttr.in网站并指定查询参数，如：curl -s 'http://wttr.in/{城市名}?format=3'”。
-
-4. **记录成功操作**：
-   - 仅在操作成功时，将以下信息存储到一个JSON文件中：
-     - 工具名称或插件名称（如curl）。
-     - 使用的方法或命令（如curl -s 'http://wttr.in/{城市名}?format=3'）。
-     - 输入参数（通用的查询方法描述）。
-     - 输出结果（对方法的简要描述，如：“使用此方法可以查询任何城市的当前天气信息。”）。
-     - 操作时间戳。
-
-5. **避免存储失败操作**：
-   - 如果操作失败（如API调用失败或命令执行失败），不要进行存储。
-
-6. **回答用户问题**：
-   - 说明使用了哪个工具或插件，并简要描述获取结果的方法。
-   - 如果已有相同的解决方法记录，直接返回已有的答案，而不重复存储。
+你是哆啦A梦，一个智能助手。你的任务是根据用户的问题，选择合适的插件或工具来解决问题。
 `
 
 // 定义一个全局变量用于存储对话信息
@@ -233,7 +206,7 @@ func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse)
 	}
 
 	// 构造工具调用请求的消息，使用ToolCalls字段
-	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
+	assistantMessage := openai.ChatCompletionMessage{
 		Role: openai.ChatMessageRoleAssistant,
 		ToolCalls: []openai.ToolCall{ // 使用ToolCalls切片
 			{
@@ -245,14 +218,19 @@ func (xiao_wan Xiao_wan) handleFunctionCall(resp *openai.ChatCompletionResponse)
 				},
 			},
 		},
-	})
+	}
 
 	// 构造工具调用结果的消息
-	xiao_wan.conversation = append(xiao_wan.conversation, openai.ChatCompletionMessage{
+	toolMessage := openai.ChatCompletionMessage{
 		Role:       openai.ChatMessageRoleTool,
 		Content:    jsonResponse,
 		ToolCallID: toolCall.ID, // 保持与工具调用一致
-	})
+	}
+
+	// 直接在倒数第二个位置插入助手和工具调用消息
+	convLen := len(xiao_wan.conversation)
+	xiao_wan.conversation = append(xiao_wan.conversation[:convLen-1],
+		assistantMessage, toolMessage, xiao_wan.conversation[convLen-1])
 
 	// 再次发送请求到OpenAI，获取下一个回复
 	resp, err = xiao_wan.sendRequestToOpenAI()
@@ -285,26 +263,6 @@ func (xiao_wan Xiao_wan) sendRequestToOpenAI() (*openai.ChatCompletionResponse, 
 	}
 	response := string(resultJSON)
 	fmt.Println(response)
-
-	// 遍历响应中的消息，判断是否包含 "role": "tool"
-	for _, message := range xiao_wan.conversation {
-		if message.Role == "tool" {
-			resp, err := xiao_wan.Client.CreateChatCompletion(
-				context.Background(),
-				openai.ChatCompletionRequest{
-					Model:    xiao_wan.model,
-					Messages: xiao_wan.conversation,
-					Tools:    xiao_wan.tools,
-				},
-			)
-
-			if err != nil {
-				xiao_wan.openaiError(err) // 处理OpenAI错误
-				return nil, err
-			}
-			return &resp, nil
-		}
-	}
 
 	resp, err := xiao_wan.Client.CreateChatCompletion(
 		context.Background(),

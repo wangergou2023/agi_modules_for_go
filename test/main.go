@@ -25,7 +25,8 @@ func main() {
 	targets := map[string]string{
 		"1": "小丸",
 		"2": "风间",
-		"3": "旁观对话",
+		"3": "哆啦A梦",
+		"4": "旁观对话",
 	}
 
 	fmt.Println("xiao wan is starting up... Please wait a moment.")
@@ -35,6 +36,7 @@ func main() {
 	config.BaseURL = cfg.OpenAibaseURL()
 	openaiClient := openai.NewClientWithConfig(config)
 	openaiClient_friend_fengjian := openai.NewClientWithConfig(config)
+	openaiClient_friend_duolaameng := openai.NewClientWithConfig(config)
 
 	var xiao_wan_chat_stt xiao_wan.Xiao_wan
 	var xiao_wan_chat_tts xiao_wan.Xiao_wan
@@ -59,6 +61,7 @@ func main() {
 
 	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient, xiao_wan.SystemPrompt, "for_chat")
 	xiao_wan_friend_fengjian := xiao_wan.Start(cfg, openaiClient_friend_fengjian, xiao_wan.FengjianPrompt, "for_before_chat")
+	xiao_wan_friend_duolaameng := xiao_wan.Start(cfg, openaiClient_friend_duolaameng, xiao_wan.DuolaamengPrompt, "for_before_chat")
 
 	// 启动MQTT订阅
 	go startMQTTClient(&xiao_wan_chat)
@@ -78,12 +81,12 @@ func main() {
 	var result xiao_wan.Result
 
 	for {
-		fmt.Println("选择对话对象: 1. 小丸 2. 风间 3. 旁观对话 (按回车直接旁观)")
+		fmt.Println("选择对话对象: 1. 小丸 2. 风间 3. 哆啦A梦 4. 旁观对话 (按回车直接旁观)")
 		choice, _ := reader.ReadString('\n')
 		choice = strings.TrimSpace(choice)
 
 		// 如果选择的是旁观对话，输出最新的对话内容，但不输入新消息
-		if choice == "3" || choice == "" {
+		if choice == "4" || choice == "" {
 			if response == "" {
 				fmt.Println("当前没有可以旁观的对话。")
 				continue
@@ -132,6 +135,12 @@ func main() {
 				response, result, _ = xiao_wan_friend_fengjian.Message(response)
 				// fmt.Printf("feng jian:%s\r\n", response)
 				fmt.Printf("feng jian:%s\r\n", result)
+				xiao_wan.SaveConversationToJSON(response)
+
+			} else if res == "哆啦A梦" {
+				response, result, _ = xiao_wan_friend_duolaameng.Message(response)
+				// fmt.Printf("duolaameng:%s\r\n", response)
+				fmt.Printf("duolaameng:%s\r\n", result)
 				xiao_wan.SaveConversationToJSON(response)
 			}
 		}
