@@ -5,7 +5,9 @@ import (
 	"context" // 用于控制请求、超时和取消
 	"encoding/json"
 	"fmt" // 用于格式化输出
+	"io"
 	"log"
+	"os"
 
 	"regexp"  // 用于正则表达式
 	"strconv" // 用于字符串和其他类型的转换
@@ -26,6 +28,7 @@ type Xiao_wan struct {
 	tools        []openai.Tool
 	conversation []openai.ChatCompletionMessage
 	model        string
+	speechModel  openai.SpeechModel
 	plugins      *plugins.PluginManager
 }
 
@@ -330,6 +333,16 @@ func StartStt(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
 	return xiao_wan
 }
 
+func StartTts(cfg config.Cfg, openaiClient *openai.Client) Xiao_wan {
+	xiao_wan := Xiao_wan{
+		cfg:         cfg,
+		Client:      openaiClient,
+		speechModel: openai.TTSModel1,
+	}
+
+	return xiao_wan
+}
+
 func (xiao_wan Xiao_wan) Stt() string {
 
 	req := openai.AudioRequest{
@@ -344,6 +357,55 @@ func (xiao_wan Xiao_wan) Stt() string {
 	fmt.Println("Stt:" + resp.Text)
 
 	return resp.Text
+}
+func (xiao_wan Xiao_wan) Tts(text string, speechVoice openai.SpeechVoice) string {
+
+	req := openai.CreateSpeechRequest{
+		Model: openai.TTSModel1,
+		Input: text,
+		Voice: speechVoice,
+	}
+
+	res, err := xiao_wan.Client.CreateSpeech(context.Background(), req)
+
+	if err != nil {
+		fmt.Printf("CreateSpeech error: %v", err)
+		return ""
+	}
+
+	buf, err := io.ReadAll(res)
+	if err != nil {
+		fmt.Printf("ReadAll error: %v", err)
+		return ""
+	}
+
+	// 生成文件路径，使用 speechVoice 来动态生成文件名
+	outputFile := fmt.Sprintf("%s_speech.mp3", speechVoice)
+
+	// 检查文件是否存在
+	if _, err := os.Stat(outputFile); err == nil {
+		// 文件存在，尝试删除
+		err := os.Remove(outputFile)
+		if err != nil {
+			// 删除文件时出错
+			fmt.Printf("Failed to delete existing file %s: %s", outputFile, err)
+			return ""
+		}
+		fmt.Printf("Existing file %s deleted successfully.\n", outputFile)
+	} else if !os.IsNotExist(err) {
+		// 访问文件时出现了其他错误
+		fmt.Printf("Error checking file %s: %s", outputFile, err)
+		return ""
+	}
+
+	// 保存 buf 到文件为 mp3
+	err = os.WriteFile(outputFile, buf, 0644)
+	if err != nil {
+		fmt.Printf("WriteFile error: %v", err)
+		return ""
+	}
+
+	return "ok"
 }
 
 // OpenAIError结构体用于封装OpenAI错误

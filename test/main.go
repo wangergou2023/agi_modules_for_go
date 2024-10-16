@@ -49,7 +49,7 @@ func main() {
 
 	if enableTTS {
 		openaiClient_tts := openai.NewClientWithConfig(config)
-		xiao_wan_chat_tts = xiao_wan.Start(cfg, openaiClient_tts, xiao_wan.TtsPrompt, "for_after_chat")
+		xiao_wan_chat_tts = xiao_wan.StartTts(cfg, openaiClient_tts)
 	}
 
 	if enableNeed {
@@ -130,6 +130,9 @@ func main() {
 				// fmt.Printf("xiao wan:%s\r\n", response)
 				fmt.Printf("xiao wan:%s\r\n", result)
 				xiao_wan.SaveConversationToJSON(response)
+				if enableTTS {
+					go xiao_wan_chat_tts.Tts(result.Message, openai.VoiceAlloy)
+				}
 
 			} else if res == "风间" {
 				response, result, _ = xiao_wan_friend_fengjian.Message(response)
@@ -143,10 +146,6 @@ func main() {
 				fmt.Printf("duolaameng:%s\r\n", result)
 				xiao_wan.SaveConversationToJSON(response)
 			}
-		}
-
-		if enableTTS {
-			go xiao_wan_chat_tts.MessageOne(response)
 		}
 
 		if enableNeed {
