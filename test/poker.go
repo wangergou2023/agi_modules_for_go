@@ -90,8 +90,19 @@ func isJoker(rank string) bool {
 	return false
 }
 
-// 发牌函数，发完所有牌
-func dealAllCards(deck *[]Card, numPlayers int) ([][]Card, error) {
+// 生成记牌器，用于记录已出牌
+func createCardTracker() map[string]bool {
+	tracker := make(map[string]bool)
+	return tracker
+}
+
+// 更新记牌器，记录出牌
+func updateCardTracker(tracker map[string]bool, card Card) {
+	tracker[card.String()] = true
+}
+
+// 发牌函数，发完所有牌并根据是否有地主发牌
+func dealAllCards(deck *[]Card, numPlayers int, hasLandlord bool, landlordIndex int) ([][]Card, error) {
 	cardsPerPlayer := len(*deck) / numPlayers
 	playersHands := make([][]Card, numPlayers)
 
@@ -102,29 +113,42 @@ func dealAllCards(deck *[]Card, numPlayers int) ([][]Card, error) {
 		}
 	}
 
-	// 如果还有剩余的牌，继续分发
-	if len(*deck) > 0 {
-		for i := 0; len(*deck) > 0; i = (i + 1) % numPlayers {
-			playersHands[i] = append(playersHands[i], (*deck)[0])
-			*deck = (*deck)[1:]
-		}
+	// 如果有地主且有剩余牌（如斗地主的3张地主牌），将牌给地主玩家
+	if hasLandlord && len(*deck) >= 3 {
+		playersHands[landlordIndex] = append(playersHands[landlordIndex], (*deck)[:3]...)
+		*deck = (*deck)[3:] // 移除地主的牌
 	}
 
 	return playersHands, nil
+}
+
+// 玩家出牌函数，记录每位玩家出牌
+func playCard(playerHand *[]Card, cardIndex int, tracker map[string]bool) Card {
+	card := (*playerHand)[cardIndex]
+	*playerHand = append((*playerHand)[:cardIndex], (*playerHand)[cardIndex+1:]...)
+	updateCardTracker(tracker, card) // 更新记牌器
+	return card
 }
 
 func main() {
 	// 控制是否包含大小王
 	includeJokers := true
 
+	// 控制是否有地主
+	hasLandlord := true
+
 	// 创建一副牌并洗牌
 	deck := createDeck(includeJokers)
 	shuffle(deck)
 
-	// 假设给 4 个玩家发所有的牌
-	numPlayers := 4
+	// 初始化记牌器
+	cardTracker := createCardTracker()
 
-	players, err := dealAllCards(&deck, numPlayers)
+	// 假设给 3 个玩家发牌，并通过索引选择地主
+	numPlayers := 3
+	landlordIndex := 0 // 设定玩家 1 为地主，索引从 0 开始
+
+	players, err := dealAllCards(&deck, numPlayers, hasLandlord, landlordIndex)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -137,9 +161,37 @@ func main() {
 
 	// 输出每个玩家的手牌（符号格式）
 	for i, hand := range players {
-		fmt.Printf("玩家 %d 的手牌: %v\n", i+1, hand)
+		if hasLandlord && i == landlordIndex {
+			fmt.Printf("玩家 %d (地主) 的手牌: %v\n", i+1, hand)
+		} else {
+			fmt.Printf("玩家 %d (农民) 的手牌: %v\n", i+1, hand)
+		}
 	}
 
-	// 检查是否所有牌都发完
-	fmt.Printf("剩余牌的数量: %d 张\n", len(deck))
+	// 模拟出牌过程，假设每个玩家出一张牌
+	fmt.Println("出牌记录:")
+	for i := range players {
+		if len(players[i]) > 0 {
+			card := playCard(&players[i], 0, cardTracker) // 每个玩家出第一张牌
+			fmt.Printf("玩家 %d 出牌: %s\n", i+1, card.String())
+		}
+	}
+
+	// 输出已出牌的情况
+	fmt.Println("\n记牌器记录已出牌:")
+	for card, played := range cardTracker {
+		if played {
+			fmt.Println(card)
+		}
+	}
+
+	// 输出每个玩家的手牌（符号格式）
+	for i, hand := range players {
+		if hasLandlord && i == landlordIndex {
+			fmt.Printf("玩家 %d (地主) 的手牌: %v\n", i+1, hand)
+		} else {
+			fmt.Printf("玩家 %d (农民) 的手牌: %v\n", i+1, hand)
+		}
+	}
+
 }
