@@ -9,7 +9,7 @@ import (
 
 // 定义扑克牌的花色符号和点数
 var suits = []string{"♥", "♦", "♣", "♠"}
-var ranks = []string{"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"}
+var ranks = []string{"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2"}
 
 // 定义大小王
 var jokers = []string{"🃏大", "🃏小"}
@@ -17,7 +17,7 @@ var jokers = []string{"🃏大", "🃏小"}
 // 定义花色和点数的优先级，用于排序
 var suitOrder = map[string]int{"♥": 1, "♦": 2, "♣": 3, "♠": 4}
 var rankOrder = map[string]int{
-	"2": 1, "3": 2, "4": 3, "5": 4, "6": 5, "7": 6, "8": 7, "9": 8, "10": 9, "J": 10, "Q": 11, "K": 12, "A": 13,
+	"3": 1, "4": 2, "5": 3, "6": 4, "7": 5, "8": 6, "9": 7, "10": 8, "J": 9, "Q": 10, "K": 11, "A": 12, "2": 13,
 }
 
 // Card 结构体表示一张扑克牌
@@ -90,108 +90,99 @@ func isJoker(rank string) bool {
 	return false
 }
 
-// 生成记牌器，用于记录已出牌
-func createCardTracker() map[string]bool {
-	tracker := make(map[string]bool)
-	return tracker
-}
-
-// 更新记牌器，记录出牌
-func updateCardTracker(tracker map[string]bool, card Card) {
-	tracker[card.String()] = true
-}
-
-// 发牌函数，发完所有牌并根据是否有地主发牌
-func dealAllCards(deck *[]Card, numPlayers int, hasLandlord bool, landlordIndex int) ([][]Card, error) {
-	cardsPerPlayer := len(*deck) / numPlayers
+// 发牌函数，给三位玩家发17张牌，留下3张底牌
+func dealCardsForDouDiZhu(deck *[]Card) ([][]Card, []Card) {
+	numPlayers := 3
 	playersHands := make([][]Card, numPlayers)
 
-	for i := 0; i < cardsPerPlayer; i++ {
+	// 发每位玩家17张牌
+	for i := 0; i < 17; i++ {
 		for j := 0; j < numPlayers; j++ {
 			playersHands[j] = append(playersHands[j], (*deck)[0])
 			*deck = (*deck)[1:] // 从牌堆中移除已发出的牌
 		}
 	}
 
-	// 如果有地主且有剩余牌（如斗地主的3张地主牌），将牌给地主玩家
-	if hasLandlord && len(*deck) >= 3 {
-		playersHands[landlordIndex] = append(playersHands[landlordIndex], (*deck)[:3]...)
-		*deck = (*deck)[3:] // 移除地主的牌
-	}
+	// 剩下3张底牌
+	bottomCards := (*deck)[:3]
+	*deck = (*deck)[3:]
 
-	return playersHands, nil
+	return playersHands, bottomCards
 }
 
 // 玩家出牌函数，记录每位玩家出牌
-func playCard(playerHand *[]Card, cardIndex int, tracker map[string]bool) Card {
+func playCard(playerHand *[]Card, cardIndex int, tracker []Card) Card {
 	card := (*playerHand)[cardIndex]
 	*playerHand = append((*playerHand)[:cardIndex], (*playerHand)[cardIndex+1:]...)
-	updateCardTracker(tracker, card) // 更新记牌器
+	tracker = append(tracker, card) // 记录该牌已被出
 	return card
+}
+
+// 排序已出牌的情况
+func sortPlayedCards(cards []Card) {
+	sortHand(cards) // 直接使用已有的排序函数
 }
 
 func main() {
 	// 控制是否包含大小王
 	includeJokers := true
 
-	// 控制是否有地主
-	hasLandlord := true
-
 	// 创建一副牌并洗牌
 	deck := createDeck(includeJokers)
 	shuffle(deck)
 
-	// 初始化记牌器
-	cardTracker := createCardTracker()
+	// 发牌并留底牌
+	players, bottomCards := dealCardsForDouDiZhu(&deck)
 
-	// 假设给 3 个玩家发牌，并通过索引选择地主
-	numPlayers := 3
-	landlordIndex := 0 // 设定玩家 1 为地主，索引从 0 开始
-
-	players, err := dealAllCards(&deck, numPlayers, hasLandlord, landlordIndex)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	// 假设第一个玩家为地主
+	landlordIndex := 0
+	players[landlordIndex] = append(players[landlordIndex], bottomCards...)
 
 	// 对每个玩家的手牌进行排序
 	for i := range players {
 		sortHand(players[i])
 	}
 
+	// 记录出牌的情况
+	var cardTracker []Card
+
 	// 输出每个玩家的手牌（符号格式）
 	for i, hand := range players {
-		if hasLandlord && i == landlordIndex {
+		if i == landlordIndex {
 			fmt.Printf("玩家 %d (地主) 的手牌: %v\n", i+1, hand)
 		} else {
 			fmt.Printf("玩家 %d (农民) 的手牌: %v\n", i+1, hand)
 		}
 	}
 
-	// 模拟出牌过程，假设每个玩家出一张牌
+	// 输出底牌
+	fmt.Printf("底牌: %v\n\n", bottomCards)
+
+	// 模拟出牌过程，假设每个玩家出第一张牌
 	fmt.Println("出牌记录:")
-	for i := range players {
-		if len(players[i]) > 0 {
-			card := playCard(&players[i], 0, cardTracker) // 每个玩家出第一张牌
-			fmt.Printf("玩家 %d 出牌: %s\n", i+1, card.String())
+	for round := 0; round < 2; round++ { // 模拟出牌
+		for i := range players {
+			if len(players[i]) > 0 {
+				card := playCard(&players[i], 0, cardTracker) // 每个玩家出第一张牌
+				cardTracker = append(cardTracker, card)       // 记录已出牌
+				fmt.Printf("玩家 %d 出牌: %s\n", i+1, card.String())
+			}
 		}
 	}
+
+	// 对已出牌的牌进行排序
+	sortPlayedCards(cardTracker)
 
 	// 输出已出牌的情况
-	fmt.Println("\n记牌器记录已出牌:")
-	for card, played := range cardTracker {
-		if played {
-			fmt.Println(card)
-		}
-	}
+	fmt.Printf("\n已出牌的牌 (排序后):%v\n", cardTracker)
 
-	// 输出每个玩家的手牌（符号格式）
+	// 输出剩余手牌
+	fmt.Println("\n剩余手牌:")
 	for i, hand := range players {
-		if hasLandlord && i == landlordIndex {
+		if i == landlordIndex {
 			fmt.Printf("玩家 %d (地主) 的手牌: %v\n", i+1, hand)
 		} else {
 			fmt.Printf("玩家 %d (农民) 的手牌: %v\n", i+1, hand)
 		}
 	}
-
 }
