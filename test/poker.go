@@ -134,9 +134,8 @@ func main() {
 	// 发牌并留底牌
 	players, bottomCards := dealCardsForDouDiZhu(&deck)
 
-	// 假设第一个玩家为地主
-	landlordIndex := 0
-	players[landlordIndex] = append(players[landlordIndex], bottomCards...)
+	// 假设第一个玩家为地主，直接将底牌加到第一个玩家手牌中
+	players[0] = append(players[0], bottomCards...)
 
 	// 对每个玩家的手牌进行排序
 	for i := range players {
@@ -147,13 +146,9 @@ func main() {
 	var cardTracker []Card
 
 	// 输出每个玩家的手牌（符号格式）
-	for i, hand := range players {
-		if i == landlordIndex {
-			fmt.Printf("玩家 %d (地主) 的手牌: %v\n", i+1, hand)
-		} else {
-			fmt.Printf("玩家 %d (农民) 的手牌: %v\n", i+1, hand)
-		}
-	}
+	fmt.Printf("玩家 1 (地主) 的手牌: %v\n", players[0])
+	fmt.Printf("玩家 2 (农民1) 的手牌: %v\n", players[1])
+	fmt.Printf("玩家 3 (农民2) 的手牌: %v\n", players[2])
 
 	// 输出底牌
 	fmt.Printf("底牌: %v\n\n", bottomCards)
@@ -178,11 +173,7 @@ func main() {
 
 	// 输出剩余手牌
 	fmt.Println("\n剩余手牌:")
-	for i, hand := range players {
-		if i == landlordIndex {
-			fmt.Printf("玩家 %d (地主) 的手牌: %v\n", i+1, hand)
-		} else {
-			fmt.Printf("玩家 %d (农民) 的手牌: %v\n", i+1, hand)
-		}
-	}
+	fmt.Printf("玩家 1 (地主) 的手牌: %v\n", players[0])
+	fmt.Printf("玩家 2 (农民1) 的手牌: %v\n", players[1])
+	fmt.Printf("玩家 3 (农民2) 的手牌: %v\n", players[2])
 }
