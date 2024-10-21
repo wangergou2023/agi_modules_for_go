@@ -123,12 +123,36 @@ func sortPlayedCards(cards []Card) {
 	sortHand(cards) // 直接使用已有的排序函数
 }
 
-func main() {
-	// 控制是否包含大小王
-	includeJokers := true
+// 玩家出牌并记录的函数，支持一次出多张牌
+func playAndRecordMultiple(playerIndex int, playerHand *[]Card, tracker *[]Card, cardIndices []int) {
+	// 记录出牌顺序
+	var playedCards []Card
 
-	// 创建一副牌并洗牌
-	deck := createDeck(includeJokers)
+	// 遍历所有要出的牌的索引
+	for _, idx := range cardIndices {
+		card := (*playerHand)[idx]
+		playedCards = append(playedCards, card)
+	}
+
+	// 从玩家手牌中移除这些牌
+	for i := len(cardIndices) - 1; i >= 0; i-- {
+		*playerHand = append((*playerHand)[:cardIndices[i]], (*playerHand)[cardIndices[i]+1:]...)
+	}
+
+	// 将这些牌加入已出牌的记录中
+	*tracker = append(*tracker, playedCards...)
+
+	// 输出出牌信息
+	fmt.Printf("玩家 %d 出牌: ", playerIndex+1)
+	for _, card := range playedCards {
+		fmt.Printf("%s ", card.String())
+	}
+	fmt.Println()
+}
+
+func main() {
+	// 创建一副牌并默认包含大小王
+	deck := createDeck(true) // 默认包含大小王
 	shuffle(deck)
 
 	// 发牌并留底牌
@@ -153,17 +177,17 @@ func main() {
 	// 输出底牌
 	fmt.Printf("底牌: %v\n\n", bottomCards)
 
-	// 模拟出牌过程，假设每个玩家出第一张牌
+	// 模拟出牌过程，假设每个玩家出多张牌
 	fmt.Println("出牌记录:")
-	for round := 0; round < 2; round++ { // 模拟出牌
-		for i := range players {
-			if len(players[i]) > 0 {
-				card := playCard(&players[i], 0, cardTracker) // 每个玩家出第一张牌
-				cardTracker = append(cardTracker, card)       // 记录已出牌
-				fmt.Printf("玩家 %d 出牌: %s\n", i+1, card.String())
-			}
-		}
-	}
+
+	// 假设第一轮玩家 1 出两张牌
+	playAndRecordMultiple(0, &players[0], &cardTracker, []int{0, 1})
+
+	// 假设玩家 2 出一张牌
+	playAndRecordMultiple(1, &players[1], &cardTracker, []int{2})
+
+	// 假设玩家 3 出三张牌
+	playAndRecordMultiple(2, &players[2], &cardTracker, []int{3, 4, 5})
 
 	// 对已出牌的牌进行排序
 	sortPlayedCards(cardTracker)
