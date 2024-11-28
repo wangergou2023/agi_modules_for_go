@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"plugin"
-	"runtime"
 
 	"github.com/sashabaranov/go-openai"
 	config "github.com/wangergou2023/agi_modules_for_go/config"
@@ -45,19 +44,21 @@ func NewPluginManager(cfg config.Cfg, openaiClient *openai.Client) *PluginManage
 
 // LoadPlugins 加载指定目录下的所有插件
 func (pm *PluginManager) LoadPlugins(compiledDir string) error {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return fmt.Errorf("cannot get current file path")
+
+	// 获取程序运行时的工作目录
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("cannot get working directory: %v", err)
 	}
 
-	files, err := os.ReadDir(filepath.Dir(filename) + "/" + compiledDir)
+	files, err := os.ReadDir(wd + "/" + compiledDir)
 	if err != nil {
 		return err
 	}
 
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".so" {
-			err := pm.loadSinglePlugin(filepath.Dir(filename) + "/" + compiledDir + "/" + file.Name())
+			err := pm.loadSinglePlugin(wd + "/" + compiledDir + "/" + file.Name())
 			if err != nil {
 				return err
 			}
@@ -143,7 +144,7 @@ func (pm *PluginManager) GenerateOpenAItoolsDefinition() []openai.Tool {
 		functionDef := plugin.FunctionDefinition()
 		tool := openai.Tool{
 			Type:     openai.ToolTypeFunction,
-			Function: &functionDef,  // 直接构建 Tool 结构体
+			Function: &functionDef, // 直接构建 Tool 结构体
 		}
 		tools = append(tools, tool)
 	}
