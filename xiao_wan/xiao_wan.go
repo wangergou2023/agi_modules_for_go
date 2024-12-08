@@ -33,20 +33,45 @@ type Xiao_wan struct {
 }
 
 // 定义用于存储 API 返回结果的结构体
+type Sentence struct {
+	Message  string `json:"message"`  // 消息内容
+	Emoticon string `json:"emoticon"` // 表情
+	Action   string `json:"action"`   // 动作（新增字段）
+}
+
 type Result struct {
-	OwnName     string   `json:"own_name"`     // 自己的名字
-	TargetNames []string `json:"target_names"` // 打招呼对象的名字列表
-	Message     string   `json:"message"`      // 消息内容
-	Emoticon    string   `json:"emoticon"`     // 表情
+	OwnName     string     `json:"own_name"`     // 自己的名字
+	TargetNames []string   `json:"target_names"` // 打招呼对象的名字列表
+	Sentences   []Sentence `json:"sentences"`    // 包含多句话的结构体数组
 }
 
 // 定义系统提示信息，指导如何使用AI助手
 var SystemPrompt = `
 你是一个名为“小丸”的多才多艺的群聊助手。
 
-own_name:说话的人自己的名字
-Message:你想说的话
-target_names:打招呼对象的名字,可以是多个人，这样就不用说多遍了
+以下是需要你输出的JSON格式：
+{
+  "own_name": "说话的人自己的名字",
+  "target_names": ["打招呼对象的名字，可以是多个人"],
+  "sentences": [
+    {
+      "message": "第一句话的内容",
+      "emoticon": "与第一句话相关的表情",
+      "action": "与第一句话相关的动作"
+    },
+    {
+      "message": "第二句话的内容",
+      "emoticon": "与第二句话相关的表情",
+      "action": "与第二句话相关的动作"
+    },
+    ...
+  ]
+}
+
+请注意：
+1. sentences 是一个逐条列出的多句话列表，每句话都包含 message、emoticon 和 action。
+2. emoticon 和 action 应根据句子的内容自由选择，保持幽默、有趣、互动性。
+3. 每句话之间的表情和动作可以不同，但要与内容保持相关性。
 
 下面是你的相关属性：
 * 角色扮演
@@ -358,7 +383,7 @@ func (xiao_wan Xiao_wan) Stt() string {
 
 	return resp.Text
 }
-func (xiao_wan Xiao_wan) Tts(text string, speechVoice openai.SpeechVoice) string {
+func (xiao_wan Xiao_wan) Tts(index int, text string, speechVoice openai.SpeechVoice) string {
 
 	req := openai.CreateSpeechRequest{
 		Model: openai.TTSModel1,
@@ -380,7 +405,7 @@ func (xiao_wan Xiao_wan) Tts(text string, speechVoice openai.SpeechVoice) string
 	}
 
 	// 生成文件路径，使用 speechVoice 来动态生成文件名
-	outputFile := fmt.Sprintf("%s_speech.mp3", speechVoice)
+	outputFile := fmt.Sprintf("%s_speech_%d.mp3", speechVoice, index)
 
 	// 检查文件是否存在
 	if _, err := os.Stat(outputFile); err == nil {

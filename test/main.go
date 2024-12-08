@@ -107,8 +107,12 @@ func main() {
 			// 构建Result
 			result = xiao_wan.Result{
 				TargetNames: []string{targetName},
-				Message:     text,
-				OwnName:     "主人",
+				Sentences: []xiao_wan.Sentence{
+					{
+						Message: text, // 单句消息内容
+					},
+				},
+				OwnName: "主人",
 			}
 
 			// 将 Result 转换为 JSON 字符串
@@ -131,7 +135,10 @@ func main() {
 				fmt.Printf("xiao wan:%s\r\n", result)
 				xiao_wan.SaveConversationToJSON(response)
 				if enableTTS {
-					go xiao_wan_chat_tts.Tts(result.Message, openai.VoiceAlloy)
+					for i, sentence := range result.Sentences {
+						// 将每句话传递给 TTS 接口
+						go xiao_wan_chat_tts.Tts(i, sentence.Message, openai.VoiceAlloy)
+					}
 				}
 
 			} else if res == "风间" {
