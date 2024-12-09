@@ -321,7 +321,7 @@ func Start(cfg config.Cfg, openaiClient *openai.Client, systemPrompt string, com
 	xiao_wan := Xiao_wan{
 		cfg:    cfg,
 		Client: openaiClient,
-		model:  openai.GPT4oMini,
+		model:  openai.GPT4o,
 	}
 
 	// 创建一个新的 PluginManager 实例

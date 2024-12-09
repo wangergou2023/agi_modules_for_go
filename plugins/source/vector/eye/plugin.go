@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	sdk_wrapper "github.com/fforchino/vector-go-sdk/pkg/sdk-wrapper"
@@ -11,48 +12,59 @@ import (
 	plugins "github.com/wangergou2023/agi_modules_for_go/plugins"
 )
 
-// CameraPlugin作为plugins.Plugin的实现
-var Plugin plugins.Plugin = &CameraPlugin{}
+// EyeControlPlugin作为plugins.Plugin的实现
+var Plugin plugins.Plugin = &EyeControlPlugin{}
 
-// CameraPlugin结构体定义
-type CameraPlugin struct {
+// EyeControlPlugin结构体定义
+type EyeControlPlugin struct {
 	cfg          config.Cfg
 	openaiClient *openai.Client
 }
 
 // Init方法用于初始化插件
-func (c *CameraPlugin) Init(cfg config.Cfg, openaiClient *openai.Client) error {
-	c.cfg = cfg
-	c.openaiClient = openaiClient
+func (e *EyeControlPlugin) Init(cfg config.Cfg, openaiClient *openai.Client) error {
+	e.cfg = cfg
+	e.openaiClient = openaiClient
 	return nil
 }
 
 // ID方法返回插件的唯一标识符
-func (c CameraPlugin) ID() string {
-	return "take_photo"
+func (e EyeControlPlugin) ID() string {
+	return "control_eye"
 }
 
 // Description方法返回插件的描述
-func (c CameraPlugin) Description() string {
-	return "控制机器人眼睛拍照，并返回图片文件的名称。"
+func (e EyeControlPlugin) Description() string {
+	return "控制机器人眼睛获取图片或视频。"
 }
 
 // FunctionDefinition方法返回OpenAI函数定义
-func (c CameraPlugin) FunctionDefinition() openai.FunctionDefinition {
+func (e EyeControlPlugin) FunctionDefinition() openai.FunctionDefinition {
 	return openai.FunctionDefinition{
-		Name:        "take_photo",
-		Description: "控制机器人的摄像头拍摄一张照片，保存到文件系统，并返回图片文件的名称。",
+		Name:        "control_eye",
+		Description: "根据指令控制机器人眼睛获取图片或视频。",
 		Parameters: jsonschema.Definition{
-			Type:       jsonschema.Object,
-			Properties: map[string]jsonschema.Definition{}, // 此插件不需要参数
+			Type: jsonschema.Object,
+			Properties: map[string]jsonschema.Definition{
+				"action": {
+					Type: jsonschema.String,
+					Enum: []string{"photo", "video"},
+				},
+			},
 		},
 	}
 }
 
-// Execute方法执行插件的主要功能，控制摄像头拍照并返回文件名称
-func (c CameraPlugin) Execute(jsonInput string) (string, error) {
+// Execute方法执行插件的主要功能，控制手臂动作
+func (e EyeControlPlugin) Execute(jsonInput string) (string, error) {
+	// 解析输入
+	var input struct {
+		Action string `json:"action"`
+	}
+	if err := json.Unmarshal([]byte(jsonInput), &input); err != nil {
+		return "", fmt.Errorf("无法解析输入: %v", err)
+	}
 
-	// 执行控制指令
 	ctx := context.Background()
 	start := make(chan bool)
 	stop := make(chan bool)
@@ -63,13 +75,20 @@ func (c CameraPlugin) Execute(jsonInput string) (string, error) {
 	for {
 		select {
 		case <-start:
-			sdk_wrapper.SetLocale("en-US")
-			sdk_wrapper.SayText("are you ok ?")
-			sdk_wrapper.SaveHiResCameraPicture("camera.jpg")
-			fmt.Println("正在拍照")
-			stop <- true
-			// 返回文件名称
-			return fmt.Sprintf("拍照成功，图片名称: %s", "camera.jpg"), nil
+			switch input.Action {
+			case "photo":
+				sdk_wrapper.SetLocale("en-US")
+				sdk_wrapper.SayText("are you ok ?")
+				sdk_wrapper.SaveHiResCameraPicture("camera.jpg")
+				fmt.Println("正在获取图片")
+				stop <- true
+				return "获取图片完毕。", nil
+			case "video":
+				stop <- true
+				return "获取视频完毕。", nil
+			default:
+				return "", fmt.Errorf("未知的动作指令: %s", input.Action)
+			}
 		}
 	}
 }
