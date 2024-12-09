@@ -79,13 +79,14 @@ func (e EyeControlPlugin) Execute(jsonInput string) (string, error) {
 			case "photo":
 				sdk_wrapper.SetLocale("en-US")
 				sdk_wrapper.SayText("are you ok ?")
-				sdk_wrapper.SaveHiResCameraPicture("camera.jpg")
+				sdk_wrapper.SaveHiResCameraPicture("robot_photo.jpg")
 				fmt.Println("正在获取图片")
 				stop <- true
-				return "获取图片完毕。", nil
+				return fmt.Sprintf("获取图片完毕，图片名称: %s", "robot_photo.jpg"), nil
 			case "video":
 				stop <- true
-				return "获取视频完毕。", nil
+				fmt.Println("正在获取视频")
+				return fmt.Sprintf("获取视频完毕，视频名称: %s", "robot_video.jpg"), nil
 			default:
 				return "", fmt.Errorf("未知的动作指令: %s", input.Action)
 			}

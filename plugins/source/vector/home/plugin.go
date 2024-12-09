@@ -35,20 +35,20 @@ func (h HomeControlPlugin) ID() string {
 
 // Description方法返回插件的描述
 func (h HomeControlPlugin) Description() string {
-	return "控制机器人回到家（充电站）休息和充电，以及从家出发开始工作。"
+	return "控制机器人回到家（充电站）休息（充电），以及从家出发开始工作。"
 }
 
 // FunctionDefinition方法返回OpenAI函数定义
 func (h HomeControlPlugin) FunctionDefinition() openai.FunctionDefinition {
 	return openai.FunctionDefinition{
 		Name:        "control_home",
-		Description: "根据指令控制机器人回家休息和充电或从家出发开始工作。",
+		Description: "根据指令控制机器人回家休息（充电）或从家出发开始工作。",
 		Parameters: jsonschema.Definition{
 			Type: jsonschema.Object,
 			Properties: map[string]jsonschema.Definition{
 				"action": {
 					Type: jsonschema.String,
-					Enum: []string{"return", "leave"},
+					Enum: []string{"go_home", "leave_home"},
 				},
 			},
 		},
@@ -76,11 +76,11 @@ func (h HomeControlPlugin) Execute(jsonInput string) (string, error) {
 		select {
 		case <-start:
 			switch input.Action {
-			case "return":
+			case "go_home":
 				sdk_wrapper.DriveOnCharger()
 				stop <- true
 				return "欢迎回家！机器人正在充电。", nil
-			case "leave":
+			case "leave_home":
 				sdk_wrapper.DriveOffCharger()
 				stop <- true
 				return "机器人已准备好开始工作，已离开家。", nil
