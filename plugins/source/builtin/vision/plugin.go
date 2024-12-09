@@ -114,7 +114,7 @@ func (v *Vision) Execute(jsonInput string) (string, error) {
 		context.Background(),
 		openai.ChatCompletionRequest{
 			MaxTokens: 300,
-			Model:     openai.GPT4VisionPreview,
+			Model:     openai.GPT4o,
 			Messages:  messages,
 		},
 	)
