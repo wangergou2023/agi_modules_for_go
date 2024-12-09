@@ -7,7 +7,7 @@ require (
 	github.com/fforchino/vector-go-sdk v0.0.0-20231108155304-62168f3595d6
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/milvus-io/milvus-sdk-go/v2 v2.3.6
-	github.com/sashabaranov/go-openai v1.29.0
+	github.com/sashabaranov/go-openai v1.36.0
 )
 
 require (
