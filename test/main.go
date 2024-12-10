@@ -59,7 +59,8 @@ func main() {
 		xiao_wan_chat_legs = xiao_wan.Start(cfg, openaiClient_legs, xiao_wan.LegsPrompt, "plugins/for_after_chat3")
 	}
 
-	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient, xiao_wan.SystemPrompt, "plugins/for_chat")
+	systemPrompt := xiao_wan.SystemPrompt_part1 + xiao_wan.SystemPrompt_part2 + xiao_wan.SystemPrompt_part3
+	xiao_wan_chat := xiao_wan.Start(cfg, openaiClient, systemPrompt, "plugins/for_chat")
 	xiao_wan_friend_fengjian := xiao_wan.Start(cfg, openaiClient_friend_fengjian, xiao_wan.FengjianPrompt, "plugins/for_before_chat")
 	xiao_wan_friend_duolaameng := xiao_wan.Start(cfg, openaiClient_friend_duolaameng, xiao_wan.DuolaamengPrompt, "plugins/for_before_chat")
 
